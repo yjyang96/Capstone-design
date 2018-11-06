@@ -11,7 +11,7 @@ import yaml, sys, time, random
 # from sensor_msgs.msg import CompressedImage
 
 simulator = {"width":31, "height":31, "center":15, "resol":3}
-map_param = {"width":100, "height":100, "center":50, "resol":1, "scale":5}
+map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5}
 # walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
 walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
 
@@ -28,7 +28,7 @@ rot_scale = 20
 debug_scale = 10
 debug_scale_gray = 3
 
-max_iter = 99
+max_iter = 2000
 
 class Task:
     def __init__(self, debug_flag=False, test_flag=False, state_blink=True, state_inaccurate=True):
@@ -102,7 +102,8 @@ class Task:
         r_x=-(map_param["width"]-8)/2+random.random()*(map_param["width"]-8) #initial robot rx map base
         r_y=-(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
         i_t=random.random()*np.pi-np.pi/2 ##initial random theta
-        if rand_direction >= 0.333:
+        ran_2=random.random()
+        if rand_direction <= 0.333:
             w_w=map_param["width"]
             w_h=map_param["height"]    
             walls_initial=[]
@@ -114,14 +115,14 @@ class Task:
                 w_w=map_param["width"]+round(random.random()*20)
                 w_h=map_param["height"]+round(random.random()*20) + 20
                 for i in range(20):
-                    ox=(-w_w/2)+random.random()*(w_w-20)+i
+                    ox=(-w_w/2)+ran_2*(w_w-20)+i
                     obs_initial.append([ox,-w_h/2+20])
                     for obs in obs_initial:
                         x=obs[0]
                         y=obs[1]
-                        f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
-                        f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
-                        walls_initial.append(f_x,f_y)         
+                        t_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+                        t_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+                        obstacles_temp.append([t_x,t_y])         
             for i in range(w_w):
                 cx= -round(w_w/2)+i
                 cy= -round(w_h/2)
@@ -132,11 +133,11 @@ class Task:
                 walls_initial.append([cx,cy])
             for i in range(w_w):
                 cx= -round(w_w/2)+w_w-i
-                cy=  round(w_h/2)+w_h
+                cy= -round(w_h/2)+w_h
                 walls_initial.append([cx,cy])
             for i in range(w_h):
                 cx= -round(w_w/2)
-                cy=  round(w_h/2)+w_h-i
+                cy= -round(w_h/2)+w_h-i
                 walls_initial.append([cx,cy])
                 
         for wall in walls_initial:
@@ -242,7 +243,7 @@ class Task:
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
-            if self.state_blink == False or random.random() > (0.3 + r_ball[1]/3.0/(map_param["height"]/2)):
+            if self.state_blink == False or random.random() > (0.3 + 0.5*r_ball[1]/3.0/(map_param["height"]/2)):
                 if r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
                     r_ball_x = r_ball[0]
                     r_ball_y = r_ball[1]
@@ -255,7 +256,7 @@ class Task:
                         self.frame[cx][cy] = self._params["Map.data.red_ball"]
 
         for b_ball in self.blue_balls:
-            if self.state_blink == False or random.random() > (0.3 + b_ball[1]/3.0/(map_param["height"]/2)):
+            if self.state_blink == False or random.random() > (0.3 + 0.05*b_ball[1]/3.0/(map_param["height"]/2)):
                 if b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
                     b_ball_x = b_ball[0]
                     b_ball_y = b_ball[1]
@@ -339,7 +340,7 @@ class Task:
             else:
                 self.ball_inscreen_flag = 0
 
-        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter or self.ball_inscreen_flag >= 10:
+        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter or self.ball_inscreen_flag >= 10000:
             self.done = True
 
         if self.done:
@@ -466,7 +467,7 @@ class Task:
         return
 
 if __name__ == '__main__':
-    tk = Task(debug_flag=True, test_flag=False, state_blink=True, state_inaccurate=True)
+    tk = Task(debug_flag=True, test_flag=False, state_blink=False, state_inaccurate=False)
     tk.reset()
 
     action = -1
@@ -476,13 +477,13 @@ if __name__ == '__main__':
         action = -1
         if key == ord('q') or tk.done == True:
             break
-        elif key == ord('w'):
-            action = 0
         elif key == ord('d'):
-            action = 2
+            action = 0
         elif key == ord('s'):
-            action = 4
+            action = 2
         elif key == ord('a'):
+            action = 4
+        elif key == ord('w'):
             action = 6
         elif key == ord('z'):
             action = 8
