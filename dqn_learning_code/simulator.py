@@ -88,59 +88,65 @@ class Task:
             codec = cv2.VideoWriter_fourcc(*'mp4v')
             fps = 10
             self.video = cv2.VideoWriter(out_directory, codec, fps, (simulator["width"]*debug_scale,simulator["height"]*debug_scale))
-
-        num_walls = int((max_walls+1)*random.random())
-        # walls_sampled = random.sample(walls_samples, num_walls)
+###########map 수정###############
         rand_direction = random.random()
-        if rand_direction >= 0.666:
-            walls_sampled = [[random.random()+0.7,-10*random.random()-20],[-random.random()-0.2,-10*random.random()-20],\
-                        [10*random.random()+20,0.5*random.random()+0.4],[-10*random.random()-20,-0.5*random.random()-0.4]]
-        elif rand_direction >= 0.333:
-            walls_sampled = [[random.random()+0.7,10*random.random()+20],[-random.random()-0.2,10*random.random()+20],\
-                        [-10*random.random()-20,0.5*random.random()+0.4],[10*random.random()+20,-0.5*random.random()-0.4]]
-        else:
-            walls_sampled = []
-
         obstacles_temp = []
-        for wall in walls_sampled:
-            if abs(wall[1]) >= abs(wall[0]):
-                point_start = -2.0*map_param["center"]
-                point_end = 2.0*map_param["center"]
-                unit = (point_end-point_start)/200
-
-                for i in range(200):
-                    cy = (point_start + unit*i)
-                    cx = (wall[0]*(map_param["center"]-(cy/wall[1])))
-                    obstacles_temp.append([cx,cy])
+        walls_initial=[]
+        obs_initial=[]
+        r_x=-(map_param["width"]-8)/2+random.random()*(map_param["width"]-8) #initial robot rx map base
+        r_y=-(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
+        i_t=random.random()*np.pi-np.pi/2 ##initial random theta
+        if rand_direction >= 0.333:
+            walls_initial=[]
+        else:
+            if rand_direction >= 0.666: ## only wall
+                w_w=map_param["width"]+round(random.random()*20) ##random wall width
+                w_h=map_param["height"]+round(random.random()*20) ##random wall height
             else:
-                point_start = -1.0*map_param["center"]
-                point_end = 3.0*map_param["center"]
-                unit = (point_end-point_start)/200
+                w_w=map_param["width"]+round(random.random()*20)
+                w_h=map_param["height"]+round(random.random()*20) + 20
+                for i in range(20):
+                    ox=(-w_w/2)+random.random()*(w_w-20)+i
+                    obs_initial.append([ox,-w_h/2+20])
+                    for obs in obs_initial:
+                        x=obs[0]
+                        y=obs[1]
+                        f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+                        f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+                        walls_initial.append(f_x,f_y)
+            for i in range(w_w):
+                cx= -round(w_w/2)+i
+                cy= -round(w_h/2)  
+                walls_initial.append([cx,cy])
+            for i in range(w_h):
+                cx= -round(w_w/2)+w_w
+                cy= -round(w_h/2)+i
+                walls_initial.append([cx,cy])   
+            for i in range(w_w):
+                cx= -round(w_w/2)+w_w-i
+                cy=  round(w_h/2)+w_h
+                walls_initial.append([cx,cy])       
+            for i in range(w_h):
+                cx= -round(w_w/2)
+                cy=  round(w_h/2)+w_h-i
+                walls_initial.append([cx,cy])
 
-                for i in range(200):
-                    cx = (point_start + unit*i)
-                    cy = (wall[1]*(map_param["center"]-(cx/wall[0])))
-                    obstacles_temp.append([cx,cy])
+        for wall in walls_initial:
+            x=wall[0]
+            y=wall[1]
+            f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+            f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+            obstacles_temp.append(f_x,f_y)
 
         for obstacle in obstacles_temp:
             cx = obstacle[0]
             cy = obstacle[1]
-            insert = True
-            for wall in walls_sampled:
-                if cx/wall[0] + cy/wall[1] > map_param["center"]:
-                    insert = False
-            if insert:
-                self.obstacles.append([cx,cy])
-
+            self.obstacles.append([cx,cy])
+#########################여기까지#################33
         for i in range(max_balls):
             cx = int(1.0*random.random()*(map_param["height"]-2*trans_scale)+2*trans_scale)
             cy = int(1.0*random.random()*map_param["width"]) - map_param["center"]
-            insert = True
-            for wall in walls_sampled:
-                if cx/wall[0] + cy/wall[1] >= map_param["center"]:
-                    insert = False
-            if insert:
-                self.balls.append([cx,cy])
+            self.balls.append([cx,cy])
 
         self.draw_state()
 
@@ -403,7 +409,7 @@ if __name__ == '__main__':
         key = cv2.waitKey(300)&0xFF
         action = -1
         if key == ord('q') or tk.done == True:
-            break;
+            break
         elif key == ord('w'):
             action = 0
         elif key == ord('d'):
