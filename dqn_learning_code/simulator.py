@@ -35,7 +35,10 @@ class Task:
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
         self.balls = []
-        self.balls_prev = []
+        self.red_balls = []
+        self.blue_balls = []
+        self.red_balls_prev = []
+        self.blue_balls_prev = []
         self.obstacles = []
         self.episode_rewards = []
         self.score = 0
@@ -64,11 +67,14 @@ class Task:
         # self.reset(max_balls=20, max_walls=3)
         return
 
-    def reset(self, max_balls=20, max_walls=2):
+    def reset(self, max_balls=10, max_walls=2):
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
         self.balls = []
-        self.balls_prev = []
+        self.red_balls = []
+        self.blue_balls = []
+        self.red_balls_prev = []
+        self.blue_balls_prev = []
         self.obstacles = []
         self.score = 0
         self.iter = 0
@@ -141,7 +147,10 @@ class Task:
                     insert = False
             if insert:
                 self.balls.append([cx,cy])
-
+                if i < max_balls/2:
+                    self.red_balls.append([cx,cy])
+                else:
+                    self.blue_balls.append([cx,cy])
         self.draw_state()
 
         return self.frame_gray
@@ -168,8 +177,10 @@ class Task:
             for j in range(simulator["height"]):
                 if frame[i][j] == self._params["Map.data.obstacle"]:
                     cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(255,255,0),-1)
-                if frame[i][j] == self._params["Map.data.ball"] or frame[i][j] == self._params["Map.data.ball_track"]:
-                    cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(0,255,0),-1)
+                if frame[i][j] == self._params["Map.data.red_ball"]:
+                    cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(0,0,255),-1)
+                if frame[i][j] == self._params["Map.data.blue_ball"]:
+                    cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(255,0,0),-1)
 
         cv2.rectangle(frame_debug,(simulator["center"]*debug_scale-1,(simulator["height"]-1)*debug_scale+1),\
                     ((simulator["center"]+1)*debug_scale,simulator["height"]*debug_scale-1),(255,0,0),-1)
@@ -192,15 +203,17 @@ class Task:
         return frame_debug
 
     def draw_state_gray(self):
-        gray_color = {"ball":255, "wall":100, "robot":200, "robot_padding":150}
+        gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
 
         for i in range(simulator["width"]):
             for j in range(simulator["height"]):
                 if self.frame[i][j] == self._params["Map.data.obstacle"]:
                     cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["wall"],-1)
-                if self.frame[i][j] == self._params["Map.data.ball"] or self.frame[i][j] == self._params["Map.data.ball_track"]:
-                    cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["ball"],-1)
+                if self.frame[i][j] == self._params["Map.data.red_ball"]:
+                    cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["red_ball"],-1)
+                if self.frame[i][j] == self._params["Map.data.blue_ball"]:
+                    cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["blue_ball"],-1)
 
         cv2.rectangle(self.frame_gray,((simulator["center"]-2)*debug_scale_gray-1,(simulator["height"]-2)*debug_scale_gray+1),\
                     ((simulator["center"]+3)*debug_scale_gray,simulator["height"]*debug_scale_gray-1),gray_color["robot_padding"],-1)
@@ -216,19 +229,32 @@ class Task:
             cy = simulator["height"] - 1 - int(round(1.0*obstacle[0]/trans_scale))
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
-        for ball in self.balls:
-            if self.state_blink == False or random.random() > (0.3 + ball[0]/3.0/map_param["center"]):
-                if ball[0] >= int(ball_blind_ratio*(abs(1.0*ball[1])-ball_blind_bias)):
-                    ball_x = ball[0]
-                    ball_y = ball[1]
+        for r_ball in self.red_balls:
+            if self.state_blink == False or random.random() > (0.3 + r_ball[0]/3.0/map_param["center"]):
+                if r_ball[0] >= int(ball_blind_ratio*(abs(1.0*r_ball[1])-ball_blind_bias)):
+                    r_ball_x = r_ball[0]
+                    r_ball_y = r_ball[1]
                     if self.state_inaccurate:
-                        ball_x = ball_x + random.random()*map_param["center"]*(0.1*ball_x*ball_x/map_param["center"]/map_param["center"] - 0.05)
-                        ball_y = ball_y + random.random()*map_param["center"]*(0.1*ball_x*ball_x/map_param["center"]/map_param["center"] - 0.05)
-
-                    cx = simulator["center"] - int(round(1.0*ball_y/trans_scale))
-                    cy = simulator["height"] - 1 - int(round(1.0*ball_x/trans_scale))
+                        r_ball_x = r_ball_x + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                        r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                    cx = simulator["center"] - int(round(1.0*r_ball_y/trans_scale))
+                    cy = simulator["height"] - 1 - int(round(1.0*r_ball_x/trans_scale))
                     if self.check_window_state(cx, cy):
-                        self.frame[cx][cy] = self._params["Map.data.ball"]
+                        self.frame[cx][cy] = self._params["Map.data.red_ball"]
+
+        for b_ball in self.blue_balls:
+            if self.state_blink == False or random.random() > (0.3 + b_ball[0]/3.0/map_param["center"]):
+                if b_ball[0] >= int(ball_blind_ratio*(abs(1.0*b_ball[1])-ball_blind_bias)):
+                    b_ball_x = b_ball[0]
+                    b_ball_y = b_ball[1]
+                    if self.state_inaccurate:
+                        b_ball_x = b_ball_x + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                        b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                    cx = simulator["center"] - int(round(1.0*b_ball_y/trans_scale))
+                    cy = simulator["height"] - 1 - int(round(1.0*b_ball_x/trans_scale))
+                    if self.check_window_state(cx, cy):
+                        self.frame[cx][cy] = self._params["Map.data.blue_ball"]
+
         self.frame[simulator["center"]][simulator["height"]-1] = 255
 
         self.draw_state_gray()
@@ -237,42 +263,71 @@ class Task:
 
     def get_reward(self, action):
         reward = 0
-        balls_temp = []
-        for i, ball in enumerate(self.balls):
-            cx = int(round(1.0*ball[0]/trans_scale))
-            cy = int(round(abs(1.0*ball[1]/trans_scale)))
-            if  cx < reward_region_x and cx >= 0 and ball[0] >= int(ball_blind_ratio*(abs(1.0*ball[1])-ball_blind_bias)):
+        red_balls_temp = []
+        blue_balls_temp = []
+
+        #reward for red ball
+        for i, r_ball in enumerate(self.red_balls):
+            cx = int(round(1.0*r_ball[0]/trans_scale))
+            cy = int(round(abs(1.0*r_ball[1]/trans_scale)))
+            if  cx < reward_region_x and cx >= 0 and r_ball[0] >= int(ball_blind_ratio*(abs(1.0*r_ball[1])-ball_blind_bias)):
                 if cy <= reward_region_y[0]:
                     reward = reward + 7
                 elif cy <= reward_region_y[1]:
                     reward = reward + 3
                 elif cy <= reward_region_y[2]:
                     reward = reward + 1
-                    if len(self.balls_prev) > 0:
-                        if int(round(1.0*self.balls_prev[i][0]/trans_scale)) < reward_region_x:
+                    if len(self.red_balls_prev) > 0:
+                        if int(round(1.0*self.red_balls_prev[i][0]/trans_scale)) < reward_region_x:
                             reward = reward - 2
                 else:
-                    balls_temp.append(ball)
+                    red_balls_temp.append(r_ball)
             else:
-                balls_temp.append(ball)
+                red_balls_temp.append(r_ball)
 
-        balls_inscreen = []
-        for ball in balls_temp:
-            if ball[0] >= ball_blind_ratio * (abs(1.0*ball[1]) - ball_blind_bias)\
-                and abs(1.0*ball[1]) <= map_param["center"] and abs(1.0*ball[0]) < map_param["height"]:
-                balls_inscreen.append(ball)
+        #reward for blue ball
+        for i, b_ball in enumerate(self.blue_balls):
+            cx = int(round(1.0*b_ball[0]/trans_scale))
+            cy = int(round(abs(1.0*b_ball[1]/trans_scale)))
+            if  cx < reward_region_x and cx >= 0 and b_ball[0] >= int(ball_blind_ratio*(abs(1.0*b_ball[1])-ball_blind_bias)):
+                if cy <= reward_region_y[0]:
+                    reward = reward + 7
+                elif cy <= reward_region_y[1]:
+                    reward = reward + 3
+                elif cy <= reward_region_y[2]:
+                    reward = reward + 1
+                    if len(self.blue_balls_prev) > 0:
+                        if int(round(1.0*self.blue_balls_prev[i][0]/trans_scale)) < reward_region_x:
+                            reward = reward - 2
+                else:
+                    blue_balls_temp.append(b_ball)
+            else:
+                blue_balls_temp.append(b_ball)
 
-        self.balls = balls_temp
+        self.red_balls = red_balls_temp
+        self.blue_balls = blue_balls_temp
+
+        red_balls_inscreen = []
+        blue_balls_inscreen = []
+        for r_ball in red_balls_temp:
+            if r_ball[0] >= ball_blind_ratio * (abs(1.0*r_ball[1]) - ball_blind_bias)\
+                and abs(1.0*r_ball[1]) <= map_param["center"] and abs(1.0*r_ball[0]) < map_param["height"]:
+                red_balls_inscreen.append(r_ball)
+        for b_ball in blue_balls_temp:
+            if b_ball[0] >= ball_blind_ratio * (abs(1.0*b_ball[1]) - ball_blind_bias)\
+                and abs(1.0*b_ball[1]) <= map_param["center"] and abs(1.0*b_ball[0]) < map_param["height"]:
+                blue_balls_inscreen.append(b_ball)
+
         # if self.debug_flag:
         #     print("balls length : "+str(len(balls_temp))+"  score : "+str(self.score)+"  screen_flag : "+str(self.ball_inscreen_flag))
 
         if action in range(10):
-            if len(balls_inscreen) == 0:
+            if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
             else:
                 self.ball_inscreen_flag = 0
 
-        if len(balls_temp) == 0 or self.iter > max_iter or self.ball_inscreen_flag >= 10:
+        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter or self.ball_inscreen_flag >= 10:
             self.done = True
 
         if self.done:
@@ -316,23 +371,24 @@ class Task:
         else:
             del_x, del_y, rot_x = 0, 0, 0
 
-        balls_temp = []
+        red_balls_temp = []
+        blue_balls_temp = []
         obstacles_temp = []
 
         del_x = del_x * trans_scale
         del_y = del_y * trans_scale
 
-        if len(self.balls) > 0:
-            balls_temp = np.add(self.balls, [del_x,del_y])
+        if len(self.red_balls) > 0:
+            red_balls_temp = np.add(self.red_balls, [del_x,del_y])
+
+        if len(self.blue_balls) > 0:
+            blue_balls_temp = np.add(self.blue_balls, [del_x,del_y])
 
         if len(self.obstacles) > 0:
             obstacles_temp = np.add(self.obstacles, [del_x,del_y])
 
         if action == 8 or action == 9:
-            if len(self.obstacles) > 0 and len(balls_temp) > 0:
-                points = np.concatenate((balls_temp, obstacles_temp))
-            else:
-                points = np.array(balls_temp)
+            points = np.concatenate ((red_balls_temp, blue_balls_temp, obstables_temp))
 
             if points.size > 0:
                 points = points.reshape(-1,2)
@@ -347,8 +403,9 @@ class Task:
                 rot_delta = np.multiply(ball_dist, rot_delta_unit)
                 points = np.subtract(points, rot_delta)
 
-                balls_temp = points[0:len(self.balls)]
-                obstacles_temp = points[len(self.balls):]
+                red_balls_temp = points[0:len(self.red_balls)]
+                blue_balls_temp = points[len(self.red_balls):len(self.red_balls)+len(self.blue_balls)]
+                obstacles_temp = points[len(self.red_balls)+len(self.blue_balls):]
 
         enable_move = True
         for obstacle in obstacles_temp:
@@ -358,11 +415,14 @@ class Task:
 
         reward = 0
         if enable_move:
-            self.balls = balls_temp
+            self.red_balls = red_balls_temp
+            self.blue_balls = blue_balls_temp
             reward = self.get_reward(action)
             self.obstacles = obstacles_temp
             self.draw_state()
-            self.balls_prev = self.balls
+            self.red_balls_prev = self.red_balls
+            self.blue_balls_prev = self.blue_balls
+
         else:
             reward = self.get_reward(-1)
 

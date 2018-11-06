@@ -15,8 +15,8 @@
 # Map.obstacle.connect_max: 15
 # Map.monitor.resolution: 0.03 # meter scale
 
-Map.data.ball_track: 1
-Map.data.ball: 2
+Map.data.red_ball: 1
+Map.data.blue_ball: 2
 Map.data.obstacle: 200
 # Map.data.obstacle.padding: 150
 
@@ -38,4 +38,3 @@ Map.data.obstacle: 200
 #     [[-0.00254592, -0.297329673,   0.219879355],
 #     [-0.335777288, -0.000457393, 0.01693678],
 #     [0.0044878288, 0.95435493, 1.0]]
-
