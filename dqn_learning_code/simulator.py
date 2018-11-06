@@ -103,6 +103,8 @@ class Task:
         r_y=-(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
         i_t=random.random()*np.pi-np.pi/2 ##initial random theta
         if rand_direction >= 0.333:
+            w_w=map_param["width"]
+            w_h=map_param["height"]    
             walls_initial=[]
         else:
             if rand_direction >= 0.666: ## only wall
@@ -119,7 +121,7 @@ class Task:
                         y=obs[1]
                         f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
                         f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
-                        walls_initial.append(f_x,f_y)
+                        walls_initial.append(f_x,f_y)         
             for i in range(w_w):
                 cx= -round(w_w/2)+i
                 cy= -round(w_h/2)
@@ -136,13 +138,13 @@ class Task:
                 cx= -round(w_w/2)
                 cy=  round(w_h/2)+w_h-i
                 walls_initial.append([cx,cy])
-
+                
         for wall in walls_initial:
             x=wall[0]
             y=wall[1]
             f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
             f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
-            obstacles_temp.append(f_x,f_y)
+            obstacles_temp.append([f_x,f_y])
 
         for obstacle in obstacles_temp:
             cx = obstacle[0]
@@ -150,18 +152,17 @@ class Task:
             self.obstacles.append([cx,cy])
 #########################여기까지#################33
         for i in range(max_balls):
-            cx = int(1.0*random.random()*(map_param["height"]-2*trans_scale)+2*trans_scale)
-            cy = int(1.0*random.random()*map_param["width"]) - map_param["center"]
+            cx = int(1.0*(2*random.random()-1)*(w_w/2-trans_scale))
+            cy = int(-w_h/2+20+trans_scale+random.random()*(w_h-20-2*trans_scale))
+            f_x=np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy
+            f_y=np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx
             insert = True
-            for wall in walls_sampled:
-                if cx/wall[0] + cy/wall[1] >= map_param["center"]:
-                    insert = False
             if insert:
-                self.balls.append([cx,cy])
+                self.balls.append([f_x,f_y])
                 if i < max_balls/2:
-                    self.red_balls.append([cx,cy])
+                    self.red_balls.append([f_x,f_y])
                 else:
-                    self.blue_balls.append([cx,cy])
+                    self.blue_balls.append([f_x,f_y])
         self.draw_state()
 
         return self.frame_gray
@@ -236,33 +237,33 @@ class Task:
     def draw_state(self):
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         for obstacle in self.obstacles:
-            cx = simulator["center"] - int(round(1.0*obstacle[1]/trans_scale))
-            cy = simulator["height"] - 1 - int(round(1.0*obstacle[0]/trans_scale))
+            cx = simulator["center"] + int(round(1.0*obstacle[0]/trans_scale))
+            cy = simulator["height"] - 1 - int(round(1.0*obstacle[1]/trans_scale))
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
-            if self.state_blink == False or random.random() > (0.3 + r_ball[0]/3.0/map_param["center"]):
-                if r_ball[0] >= int(ball_blind_ratio*(abs(1.0*r_ball[1])-ball_blind_bias)):
+            if self.state_blink == False or random.random() > (0.3 + r_ball[1]/3.0/(map_param["height"]/2)):
+                if r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
                     r_ball_x = r_ball[0]
                     r_ball_y = r_ball[1]
                     if self.state_inaccurate:
                         r_ball_x = r_ball_x + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                        r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                    cx = simulator["center"] - int(round(1.0*r_ball_y/trans_scale))
-                    cy = simulator["height"] - 1 - int(round(1.0*r_ball_x/trans_scale))
+                        r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_y*r_ball_y/map_param["center"]/map_param["center"] - 0.05)
+                    cx = simulator["center"] + int(round(1.0*r_ball_x/trans_scale))
+                    cy = simulator["height"] - 1 - int(round(1.0*r_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.red_ball"]
 
         for b_ball in self.blue_balls:
-            if self.state_blink == False or random.random() > (0.3 + b_ball[0]/3.0/map_param["center"]):
-                if b_ball[0] >= int(ball_blind_ratio*(abs(1.0*b_ball[1])-ball_blind_bias)):
+            if self.state_blink == False or random.random() > (0.3 + b_ball[1]/3.0/(map_param["height"]/2)):
+                if b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
                     b_ball_x = b_ball[0]
                     b_ball_y = b_ball[1]
                     if self.state_inaccurate:
                         b_ball_x = b_ball_x + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                        b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                    cx = simulator["center"] - int(round(1.0*b_ball_y/trans_scale))
-                    cy = simulator["height"] - 1 - int(round(1.0*b_ball_x/trans_scale))
+                        b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_y*b_ball_y/map_param["center"]/map_param["center"] - 0.05)
+                    cx = simulator["center"] + int(round(1.0*b_ball_x/trans_scale))
+                    cy = simulator["height"] - 1 - int(round(1.0*b_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.blue_ball"]
 
@@ -281,7 +282,7 @@ class Task:
         for i, r_ball in enumerate(self.red_balls):
             cx = int(round(1.0*r_ball[0]/trans_scale))
             cy = int(round(abs(1.0*r_ball[1]/trans_scale)))
-            if  cx < reward_region_x and cx >= 0 and r_ball[0] >= int(ball_blind_ratio*(abs(1.0*r_ball[1])-ball_blind_bias)):
+            if  cx < reward_region_x and cx >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
                 if cy <= reward_region_y[0]:
                     reward = reward + 7
                 elif cy <= reward_region_y[1]:
@@ -300,7 +301,7 @@ class Task:
         for i, b_ball in enumerate(self.blue_balls):
             cx = int(round(1.0*b_ball[0]/trans_scale))
             cy = int(round(abs(1.0*b_ball[1]/trans_scale)))
-            if  cx < reward_region_x and cx >= 0 and b_ball[0] >= int(ball_blind_ratio*(abs(1.0*b_ball[1])-ball_blind_bias)):
+            if  cx < reward_region_x and cx >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
                 if cy <= reward_region_y[0]:
                     reward = reward + 7
                 elif cy <= reward_region_y[1]:
@@ -321,12 +322,12 @@ class Task:
         red_balls_inscreen = []
         blue_balls_inscreen = []
         for r_ball in red_balls_temp:
-            if r_ball[0] >= ball_blind_ratio * (abs(1.0*r_ball[1]) - ball_blind_bias)\
-                and abs(1.0*r_ball[1]) <= map_param["center"] and abs(1.0*r_ball[0]) < map_param["height"]:
+            if r_ball[1] >= ball_blind_ratio * (abs(1.0*r_ball[0]) - ball_blind_bias)\
+                and abs(1.0*r_ball[0]) <= map_param["center"] and abs(1.0*r_ball[1]) < map_param["height"]:
                 red_balls_inscreen.append(r_ball)
         for b_ball in blue_balls_temp:
-            if b_ball[0] >= ball_blind_ratio * (abs(1.0*b_ball[1]) - ball_blind_bias)\
-                and abs(1.0*b_ball[1]) <= map_param["center"] and abs(1.0*b_ball[0]) < map_param["height"]:
+            if b_ball[1] >= ball_blind_ratio * (abs(1.0*b_ball[0]) - ball_blind_bias)\
+                and abs(1.0*b_ball[0]) <= map_param["center"] and abs(1.0*b_ball[1]) < map_param["height"]:
                 blue_balls_inscreen.append(b_ball)
 
         # if self.debug_flag:
@@ -399,7 +400,7 @@ class Task:
             obstacles_temp = np.add(self.obstacles, [del_x,del_y])
 
         if action == 8 or action == 9:
-            points = np.concatenate ((red_balls_temp, blue_balls_temp, obstables_temp))
+            points = np.concatenate ((red_balls_temp, blue_balls_temp, obstacles_temp))
 
             if points.size > 0:
                 points = points.reshape(-1,2)
