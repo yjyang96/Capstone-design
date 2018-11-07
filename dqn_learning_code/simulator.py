@@ -99,52 +99,52 @@ class Task:
         obstacles_temp = []
         walls_initial=[]
         obs_initial=[]
-        r_x=-(map_param["width"]-8)/2+random.random()*(map_param["width"]-8) #initial robot rx map base
-        r_y=-(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
-        i_t=random.random()*np.pi-np.pi/2 ##initial random theta
-        ran_2=random.random()
+        r_x = -(map_param["width"]-8)/2+random.random()*(map_param["width"]-8) #initial robot rx map base
+        r_y = -(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
+        i_t = random.random()*np.pi-np.pi/2 ##initial random theta
+        ran_2 = random.random()
         if rand_direction <= 0.333:
-            w_w=map_param["width"]
-            w_h=map_param["height"]    
-            walls_initial=[]
+            w_w = map_param["width"]
+            w_h = map_param["height"]    
+            walls_initial = []
         else:
             if rand_direction >= 0.666: ## only wall
-                w_w=map_param["width"]+round(random.random()*20) ##random wall width
-                w_h=map_param["height"]+round(random.random()*20) ##random wall height
+                w_w = map_param["width"]+round(random.random()*20) ##random wall width
+                w_h = map_param["height"]+round(random.random()*20) ##random wall height
             else:
-                w_w=map_param["width"]+round(random.random()*20)
-                w_h=map_param["height"]+round(random.random()*20) + 20
+                w_w = map_param["width"]+round(random.random()*20)
+                w_h = map_param["height"]+round(random.random()*20) + 20
                 for i in range(20):
-                    ox=(-w_w/2)+ran_2*(w_w-20)+i
+                    ox =(-w_w/2)+ran_2*(w_w-20)+i
                     obs_initial.append([ox,-w_h/2+20])
                     for obs in obs_initial:
-                        x=obs[0]
-                        y=obs[1]
-                        t_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
-                        t_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+                        x = obs[0]
+                        y = obs[1]
+                        t_x = np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+                        t_y = np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
                         obstacles_temp.append([t_x,t_y])         
             for i in range(w_w):
-                cx= -round(w_w/2)+i
-                cy= -round(w_h/2)
+                cx = -round(w_w/2)+i
+                cy = -round(w_h/2)
                 walls_initial.append([cx,cy])
             for i in range(w_h):
-                cx= -round(w_w/2)+w_w
-                cy= -round(w_h/2)+i
+                cx = -round(w_w/2)+w_w
+                cy = -round(w_h/2)+i
                 walls_initial.append([cx,cy])
             for i in range(w_w):
-                cx= -round(w_w/2)+w_w-i
-                cy= -round(w_h/2)+w_h
+                cx = -round(w_w/2)+w_w-i
+                cy = -round(w_h/2)+w_h
                 walls_initial.append([cx,cy])
             for i in range(w_h):
-                cx= -round(w_w/2)
-                cy= -round(w_h/2)+w_h-i
+                cx = -round(w_w/2)
+                cy = -round(w_h/2)+w_h-i
                 walls_initial.append([cx,cy])
                 
         for wall in walls_initial:
-            x=wall[0]
-            y=wall[1]
-            f_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
-            f_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+            x = wall[0]
+            y = wall[1]
+            f_x = np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+            f_y = np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
             obstacles_temp.append([f_x,f_y])
 
         for obstacle in obstacles_temp:
@@ -155,8 +155,8 @@ class Task:
         for i in range(max_balls):
             cx = int(1.0*(2*random.random()-1)*(w_w/2-trans_scale))
             cy = int(-w_h/2+20+trans_scale+random.random()*(w_h-20-2*trans_scale))
-            f_x=np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy
-            f_y=np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx
+            f_x = np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy
+            f_y = np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx
             insert = True
             if insert:
                 self.balls.append([f_x,f_y])
@@ -402,7 +402,6 @@ class Task:
 
         if action == 8 or action == 9:
             points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp] if len(x) > 0])
-
             if points.size > 0:
                 points = points.reshape(-1,2)
                 theta = rot_scale*rot*np.pi/180
