@@ -401,7 +401,7 @@ class Task:
             obstacles_temp = np.add(self.obstacles, [del_x,del_y])
 
         if action == 8 or action == 9:
-            points = np.concatenate ((red_balls_temp, blue_balls_temp, obstacles_temp))
+            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp] if len(x) > 0])
 
             if points.size > 0:
                 points = points.reshape(-1,2)
