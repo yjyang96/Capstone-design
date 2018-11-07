@@ -10,14 +10,14 @@ import yaml, sys, time, random
 # from cv_bridge import CvBridge, CvBridgeError
 # from sensor_msgs.msg import CompressedImage
 
-simulator = {"width":31, "height":31, "center":15, "resol":3}
+simulator = {"width":44, "height":44, "center":22, "resol":1}
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5}
 # walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
 walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
 
 camera_fov = 120
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
-ball_blind_bias = 5
+ball_blind_bias = 0
 
 reward_region_x = 2
 reward_region_y = [0,1,2,3]
@@ -195,20 +195,20 @@ class Task:
                 if frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(255,0,0),-1)
 
-        cv2.rectangle(frame_debug,(simulator["center"]*debug_scale-1,(simulator["height"]-1)*debug_scale+1),\
-                    ((simulator["center"]+1)*debug_scale,simulator["height"]*debug_scale-1),(255,0,0),-1)
+        cv2.rectangle(frame_debug,(simulator["center"]*debug_scale-1,(simulator["height"]-8)*debug_scale+1),\
+                    ((simulator["center"]+1)*debug_scale,(simulator["height"]-7)*debug_scale-1),(255,0,0),-1)
 
         for i in range(1,simulator["width"]):
             cv2.line(frame_debug,(i*debug_scale,0),(i*debug_scale,simulator["height"]*debug_scale-1),(128,128,128),1)
             cv2.line(frame_debug,(0,i*debug_scale),(simulator["width"]*debug_scale-1,i*debug_scale),(128,128,128),1)
 
-        cv2.line(frame_debug,((simulator["center"]+ball_blind_bias)*debug_scale,simulator["height"]*debug_scale-1),\
-                            (simulator["width"]*debug_scale-1,(simulator["height"]-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
-        cv2.line(frame_debug,((simulator["center"]-ball_blind_bias+1)*debug_scale,simulator["height"]*debug_scale-1),\
-                            (0,(simulator["height"]-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
+        cv2.line(frame_debug,((simulator["center"]+ball_blind_bias)*debug_scale,(simulator["height"]-8)*debug_scale-1),\
+                            (simulator["width"]*debug_scale-1,((simulator["height"]-8)-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
+        cv2.line(frame_debug,((simulator["center"]-ball_blind_bias+1)*debug_scale,(simulator["height"]-8)*debug_scale-1),\
+                            (0,(simulator["height"]-8-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
 
-        cv2.rectangle(frame_debug,((simulator["center"]-2)*debug_scale-1,(simulator["height"]-2)*debug_scale+1),\
-                    ((simulator["center"]+3)*debug_scale,simulator["height"]*debug_scale-1),(0,0,255),2)
+        cv2.rectangle(frame_debug,((simulator["center"]-1)*debug_scale-1,(simulator["height"]-9)*debug_scale+1),\
+                    ((simulator["center"]+2)*debug_scale,(simulator["height"]-6)*debug_scale-1),(0,0,255),2)
 
         cv2.putText(frame_debug,"Score "+str(self.score), (int(simulator["width"]*debug_scale*0.65),int(simulator["width"]*debug_scale*0.05)), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255,255,255))
         cv2.putText(frame_debug,"Step "+str(self.iter), (int(simulator["width"]*debug_scale*0.05),int(simulator["width"]*debug_scale*0.05)), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255,255,255))
@@ -228,10 +228,10 @@ class Task:
                 if self.frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["blue_ball"],-1)
 
-        cv2.rectangle(self.frame_gray,((simulator["center"]-2)*debug_scale_gray-1,(simulator["height"]-2)*debug_scale_gray+1),\
-                    ((simulator["center"]+3)*debug_scale_gray,simulator["height"]*debug_scale_gray-1),gray_color["robot_padding"],-1)
-        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray-1,(simulator["height"]-1)*debug_scale_gray+1),\
-                    ((simulator["center"]+1)*debug_scale_gray,simulator["height"]*debug_scale_gray-1),gray_color["robot"],-1)
+        cv2.rectangle(self.frame_gray,((simulator["center"]-0)*debug_scale_gray-1,(simulator["height"]-8)*debug_scale_gray+1),\
+                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-7)*debug_scale_gray-1),gray_color["robot_padding"],-1)
+        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray-1,(simulator["height"]-9)*debug_scale_gray+1),\
+                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-6)*debug_scale_gray-1),gray_color["robot"],-1)
 
         return self.frame_gray
 
@@ -239,7 +239,7 @@ class Task:
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         for obstacle in self.obstacles:
             cx = simulator["center"] + int(round(1.0*obstacle[0]/trans_scale))
-            cy = simulator["height"] - 1 - int(round(1.0*obstacle[1]/trans_scale))
+            cy = simulator["height"] - 8 - int(round(1.0*obstacle[1]/trans_scale))
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
@@ -251,7 +251,7 @@ class Task:
                         r_ball_x = r_ball_x + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
                         r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_y*r_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*r_ball_x/trans_scale))
-                    cy = simulator["height"] - 1 - int(round(1.0*r_ball_y/trans_scale))
+                    cy = simulator["height"] - 8 - int(round(1.0*r_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.red_ball"]
 
@@ -264,11 +264,11 @@ class Task:
                         b_ball_x = b_ball_x + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
                         b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_y*b_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*b_ball_x/trans_scale))
-                    cy = simulator["height"] - 1 - int(round(1.0*b_ball_y/trans_scale))
+                    cy = simulator["height"] - 8 - int(round(1.0*b_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.blue_ball"]
 
-        self.frame[simulator["center"]][simulator["height"]-1] = 255
+        self.frame[simulator["center"]][simulator["height"]-8] = 255
 
         self.draw_state_gray()
 
