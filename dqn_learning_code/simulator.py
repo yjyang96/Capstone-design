@@ -16,7 +16,7 @@ Back_pixels = 15 # # of back side view pixels
 # walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
 walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
 
-camera_fov = 120
+camera_fov = 78
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 0
 
@@ -106,7 +106,7 @@ class Task:
         ran_2=random.random()
         if rand_direction <= 0.333:
             w_w=map_param["width"]
-            w_h=map_param["height"]    
+            w_h=map_param["height"]
             walls_initial=[]
         else:
             if rand_direction >= 0.666: ## only wall
@@ -123,7 +123,7 @@ class Task:
                         y=obs[1]
                         t_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
                         t_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
-                        obstacles_temp.append([t_x,t_y])         
+                        obstacles_temp.append([t_x,t_y])
             for i in range(w_w):
                 cx= -round(w_w/2)+i
                 cy= -round(w_h/2)
@@ -140,7 +140,7 @@ class Task:
                 cx= -round(w_w/2)
                 cy= -round(w_h/2)+w_h-i
                 walls_initial.append([cx,cy])
-                
+
         for wall in walls_initial:
             x=wall[0]
             y=wall[1]
