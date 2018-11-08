@@ -10,7 +10,7 @@ import yaml, sys, time, random
 # from cv_bridge import CvBridge, CvBridgeError
 # from sensor_msgs.msg import CompressedImage
 
-simulator = {"width":44, "height":44, "center":22, "resol":3}
+simulator = {"width":31, "height":31, "center":15, "resol":3}
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5}
 Back_pixels = 15 # # of back side view pixels
 # walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
@@ -20,8 +20,8 @@ camera_fov = 78
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 0
 
-reward_region_x = 2
-reward_region_y = [0,1,2,3]
+reward_region_x = [-1,0,1]
+reward_region_y = 2
 
 trans_scale = int(simulator["resol"]/map_param["resol"])
 rot_scale = 20
@@ -156,8 +156,8 @@ class Task:
         for i in range(max_balls):
             cx = int(1.0*(2*random.random()-1)*(w_w/2-trans_scale))
             cy = int(-w_h/2+20+trans_scale+random.random()*(w_h-20-2*trans_scale))
-            f_x=np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy
-            f_y=np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx
+            f_x=(np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy)
+            f_y=(np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx)
             insert = True
             if insert:
                 self.balls.append([f_x,f_y])
@@ -282,37 +282,42 @@ class Task:
 
         #reward for red ball
         for i, r_ball in enumerate(self.red_balls):
-            cy = int(round(1.0*r_ball[0]/trans_scale))
-            cx = int(round(abs(1.0*r_ball[1]/trans_scale)))
-            if  cx < reward_region_x and cx >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
-                if cy <= reward_region_y[0]:
-                    reward = reward + 7
-                elif cy <= reward_region_y[1]:
+            cx = round(1.0*r_ball[0]/trans_scale)
+            cy = round(1.0*r_ball[1]/trans_scale)
+            if  cy < reward_region_y and cy >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
+                if reward_region_x[0] == cx:
                     reward = reward + 3
-                elif cy <= reward_region_y[2]:
-                    reward = reward + 1
                     if len(self.red_balls_prev) > 0:
-                        if int(round(1.0*self.red_balls_prev[i][0]/trans_scale)) < reward_region_x:
-                            reward = reward - 2
+                        if int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y:
+                            reward = reward - 6
+                elif reward_region_x[1] == cx:
+                    reward = reward + 7
+                elif reward_region_x[2] == cx:
+                    reward = reward + 3
+                    if len(self.red_balls_prev) > 0:
+                        if int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y:
+                            reward = reward - 6
                 else:
                     red_balls_temp.append(r_ball)
             else:
                 red_balls_temp.append(r_ball)
-
         #reward for blue ball
         for i, b_ball in enumerate(self.blue_balls):
-            cy = int(round(1.0*b_ball[0]/trans_scale))
-            cx = int(round(abs(1.0*b_ball[1]/trans_scale)))
-            if  cx < reward_region_x and cx >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
-                if cy <= reward_region_y[0]:
+            cx = int(round(1.0*b_ball[0]/trans_scale))
+            cy = int(round(abs(1.0*b_ball[1]/trans_scale)))
+            if  cy < reward_region_y and cy >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
+                if  cx == reward_region_x[1]:
                     reward = reward + 7
-                elif cy <= reward_region_y[1]:
+                elif cx == reward_region_x[0]:
                     reward = reward + 3
-                elif cy <= reward_region_y[2]:
-                    reward = reward + 1
                     if len(self.blue_balls_prev) > 0:
-                        if int(round(1.0*self.blue_balls_prev[i][0]/trans_scale)) < reward_region_x:
-                            reward = reward - 2
+                        if int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y:
+                            reward = reward - 6
+                elif cx == reward_region_x[2]:
+                    reward = reward + 3
+                    if len(self.blue_balls_prev) > 0:
+                        if int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y:
+                            reward = reward - 6
                 else:
                     blue_balls_temp.append(b_ball)
             else:
@@ -351,7 +356,7 @@ class Task:
                 print ("video saved")
 
         if action == -1:
-            return -1
+            return -1   
         else:
             return reward
 
