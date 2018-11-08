@@ -10,8 +10,9 @@ import yaml, sys, time, random
 # from cv_bridge import CvBridge, CvBridgeError
 # from sensor_msgs.msg import CompressedImage
 
-simulator = {"width":44, "height":44, "center":22, "resol":1}
+simulator = {"width":44, "height":44, "center":22, "resol":3}
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5}
+Back_pixels = 15 # # of back side view pixels
 # walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
 walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
 
@@ -195,20 +196,20 @@ class Task:
                 if frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(frame_debug,(i*debug_scale,j*debug_scale),((i+1)*debug_scale-1,(j+1)*debug_scale-1),(255,0,0),-1)
 
-        cv2.rectangle(frame_debug,(simulator["center"]*debug_scale-1,(simulator["height"]-8)*debug_scale+1),\
-                    ((simulator["center"]+1)*debug_scale,(simulator["height"]-7)*debug_scale-1),(255,0,0),-1)
+        cv2.rectangle(frame_debug,(simulator["center"]*debug_scale-1,(simulator["height"]-Back_pixels)*debug_scale+1),\
+                    ((simulator["center"]+1)*debug_scale,(simulator["height"]-(Back_pixels-1))*debug_scale-1),(255,0,0),-1)
 
         for i in range(1,simulator["width"]):
             cv2.line(frame_debug,(i*debug_scale,0),(i*debug_scale,simulator["height"]*debug_scale-1),(128,128,128),1)
             cv2.line(frame_debug,(0,i*debug_scale),(simulator["width"]*debug_scale-1,i*debug_scale),(128,128,128),1)
 
-        cv2.line(frame_debug,((simulator["center"]+ball_blind_bias)*debug_scale,(simulator["height"]-8)*debug_scale-1),\
-                            (simulator["width"]*debug_scale-1,((simulator["height"]-8)-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
-        cv2.line(frame_debug,((simulator["center"]-ball_blind_bias+1)*debug_scale,(simulator["height"]-8)*debug_scale-1),\
-                            (0,(simulator["height"]-8-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
+        cv2.line(frame_debug,((simulator["center"]+ball_blind_bias)*debug_scale,(simulator["height"]-Back_pixels)*debug_scale-1),\
+                            (simulator["width"]*debug_scale-1,((simulator["height"]-Back_pixels)-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
+        cv2.line(frame_debug,((simulator["center"]-ball_blind_bias+1)*debug_scale,(simulator["height"]-Back_pixels)*debug_scale-1),\
+                            (0,(simulator["height"]-Back_pixels-int(ball_blind_ratio*(simulator["center"]-1-ball_blind_bias)))*debug_scale),(128,128,128),1)
 
-        cv2.rectangle(frame_debug,((simulator["center"]-1)*debug_scale-1,(simulator["height"]-9)*debug_scale+1),\
-                    ((simulator["center"]+2)*debug_scale,(simulator["height"]-6)*debug_scale-1),(0,0,255),2)
+        cv2.rectangle(frame_debug,((simulator["center"]-1)*debug_scale-1,(simulator["height"]-(Back_pixels+1))*debug_scale+1),\
+                    ((simulator["center"]+2)*debug_scale,(simulator["height"]-(Back_pixels-2))*debug_scale-1),(0,0,255),2)
 
         cv2.putText(frame_debug,"Score "+str(self.score), (int(simulator["width"]*debug_scale*0.65),int(simulator["width"]*debug_scale*0.05)), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255,255,255))
         cv2.putText(frame_debug,"Step "+str(self.iter), (int(simulator["width"]*debug_scale*0.05),int(simulator["width"]*debug_scale*0.05)), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255,255,255))
@@ -228,10 +229,10 @@ class Task:
                 if self.frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["blue_ball"],-1)
 
-        cv2.rectangle(self.frame_gray,((simulator["center"]-0)*debug_scale_gray-1,(simulator["height"]-8)*debug_scale_gray+1),\
-                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-7)*debug_scale_gray-1),gray_color["robot_padding"],-1)
-        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray-1,(simulator["height"]-9)*debug_scale_gray+1),\
-                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-6)*debug_scale_gray-1),gray_color["robot"],-1)
+        cv2.rectangle(self.frame_gray,((simulator["center"]-0)*debug_scale_gray-1,(simulator["height"]-Back_pixels)*debug_scale_gray+1),\
+                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_padding"],-1)
+        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray-1,(simulator["height"]-(Back_pixels+1))*debug_scale_gray+1),\
+                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-2))*debug_scale_gray-1),gray_color["robot"],-1)
 
         return self.frame_gray
 
@@ -239,7 +240,7 @@ class Task:
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         for obstacle in self.obstacles:
             cx = simulator["center"] + int(round(1.0*obstacle[0]/trans_scale))
-            cy = simulator["height"] - 8 - int(round(1.0*obstacle[1]/trans_scale))
+            cy = simulator["height"] - Back_pixels - int(round(1.0*obstacle[1]/trans_scale))
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
@@ -251,7 +252,7 @@ class Task:
                         r_ball_x = r_ball_x + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
                         r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_y*r_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*r_ball_x/trans_scale))
-                    cy = simulator["height"] - 8 - int(round(1.0*r_ball_y/trans_scale))
+                    cy = simulator["height"] - Back_pixels - int(round(1.0*r_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.red_ball"]
 
@@ -264,11 +265,11 @@ class Task:
                         b_ball_x = b_ball_x + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
                         b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_y*b_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*b_ball_x/trans_scale))
-                    cy = simulator["height"] - 8 - int(round(1.0*b_ball_y/trans_scale))
+                    cy = simulator["height"] - Back_pixels - int(round(1.0*b_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.blue_ball"]
 
-        self.frame[simulator["center"]][simulator["height"]-8] = 255
+        self.frame[simulator["center"]][simulator["height"]-Back_pixels] = 255
 
         self.draw_state_gray()
 
@@ -281,8 +282,8 @@ class Task:
 
         #reward for red ball
         for i, r_ball in enumerate(self.red_balls):
-            cx = int(round(1.0*r_ball[0]/trans_scale))
-            cy = int(round(abs(1.0*r_ball[1]/trans_scale)))
+            cy = int(round(1.0*r_ball[0]/trans_scale))
+            cx = int(round(abs(1.0*r_ball[1]/trans_scale)))
             if  cx < reward_region_x and cx >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
                 if cy <= reward_region_y[0]:
                     reward = reward + 7
@@ -300,8 +301,8 @@ class Task:
 
         #reward for blue ball
         for i, b_ball in enumerate(self.blue_balls):
-            cx = int(round(1.0*b_ball[0]/trans_scale))
-            cy = int(round(abs(1.0*b_ball[1]/trans_scale)))
+            cy = int(round(1.0*b_ball[0]/trans_scale))
+            cx = int(round(abs(1.0*b_ball[1]/trans_scale)))
             if  cx < reward_region_x and cx >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
                 if cy <= reward_region_y[0]:
                     reward = reward + 7
@@ -362,21 +363,21 @@ class Task:
         del_x, del_y, rot = 0, 0, 0
 
         if action == 0: # forward
-            del_x, del_y = -1, 0
-        elif action == 1: # forward right
-            del_x, del_y = -1, 1
-        elif action == 2: # right
-            del_x, del_y = 0, 1
-        elif action == 3: # backward right
-            del_x, del_y = 1, 1
-        elif action == 4: # backward
-            del_x, del_y = 1, 0
-        elif action == 5: # bacward left
-            del_x, del_y = 1, -1
-        elif action == 6: # left
             del_x, del_y = 0, -1
-        elif action == 7: # forward left
+        elif action == 1: # forward right
             del_x, del_y = -1, -1
+        elif action == 2: # right
+            del_x, del_y = -1, 0  
+        elif action == 3: # backward right
+            del_x, del_y = -1, 1
+        elif action == 4: # backward
+            del_x, del_y = 0, 1 
+        elif action == 5: # bacward left
+            del_x, del_y = 1, 1 
+        elif action == 6: # left
+            del_x, del_y = 1, 0
+        elif action == 7: # forward left
+            del_x, del_y = 1, -1  
         elif action == 8: # turn left
             rot = -1
         elif action == 9: # turn right
@@ -387,6 +388,7 @@ class Task:
         red_balls_temp = []
         blue_balls_temp = []
         obstacles_temp = []
+
 
         del_x = del_x * trans_scale
         del_y = del_y * trans_scale
@@ -477,13 +479,13 @@ if __name__ == '__main__':
         action = -1
         if key == ord('q') or tk.done == True:
             break
-        elif key == ord('d'):
-            action = 0
-        elif key == ord('s'):
-            action = 2
-        elif key == ord('a'):
-            action = 4
         elif key == ord('w'):
+            action = 0
+        elif key == ord('d'):
+            action = 2
+        elif key == ord('s'):
+            action = 4
+        elif key == ord('a'):
             action = 6
         elif key == ord('z'):
             action = 8
