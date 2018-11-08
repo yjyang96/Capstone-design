@@ -18,7 +18,7 @@ walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
 
 camera_fov = 78
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
-ball_blind_bias = 0
+ball_blind_bias = 1
 
 reward_region_x = [-1,0,1]
 reward_region_y = 2
@@ -100,21 +100,25 @@ class Task:
         obstacles_temp = []
         walls_initial=[]
         obs_initial=[]
-        r_x=-(map_param["width"]-8)/2+random.random()*(map_param["width"]-8) #initial robot rx map base
-        r_y=-(map_param["height"]-8)/2+random.random()*(12) #initial robot ry map base
         i_t=random.random()*np.pi-np.pi/2 ##initial random theta
         ran_2=random.random()
         if rand_direction <= 0.333:
             w_w=map_param["width"]
             w_h=map_param["height"]
+            r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+            r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
             walls_initial=[]
         else:
             if rand_direction >= 0.666: ## only wall
                 w_w=map_param["width"]+round(random.random()*20) ##random wall width
                 w_h=map_param["height"]+round(random.random()*20) ##random wall height
+                r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+                r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
             else:
                 w_w=map_param["width"]+round(random.random()*20)
                 w_h=map_param["height"]+round(random.random()*20) + 20
+                r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+                r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
                 for i in range(20):
                     ox=(-w_w/2)+ran_2*(w_w-20)+i
                     obs_initial.append([ox,-w_h/2+20])
@@ -229,10 +233,10 @@ class Task:
                 if self.frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(self.frame_gray,(i*debug_scale_gray,j*debug_scale_gray),((i+1)*debug_scale_gray-1,(j+1)*debug_scale_gray-1),gray_color["blue_ball"],-1)
 
-        cv2.rectangle(self.frame_gray,((simulator["center"]-0)*debug_scale_gray-1,(simulator["height"]-Back_pixels)*debug_scale_gray+1),\
-                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_padding"],-1)
-        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray-1,(simulator["height"]-(Back_pixels+1))*debug_scale_gray+1),\
-                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-2))*debug_scale_gray-1),gray_color["robot"],-1)
+        cv2.rectangle(self.frame_gray,((simulator["center"]-1)*debug_scale_gray,(simulator["height"]-(Back_pixels+1))*debug_scale_gray+1),\
+                    ((simulator["center"]+2)*debug_scale_gray,(simulator["height"]-(Back_pixels-2))*debug_scale_gray-1),gray_color["robot_padding"],-1)
+        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
+                    ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot"],-1)
 
         return self.frame_gray
 
@@ -282,9 +286,9 @@ class Task:
 
         #reward for red ball
         for i, r_ball in enumerate(self.red_balls):
-            cx = round(1.0*r_ball[0]/trans_scale)
-            cy = round(1.0*r_ball[1]/trans_scale)
-            if  cy < reward_region_y and cy >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
+            cx = int(round(1.0*r_ball[0]/trans_scale))
+            cy = int(round(1.0*r_ball[1]/trans_scale))
+            if  cy < reward_region_y and cy >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2):
                 if reward_region_x[0] == cx:
                     reward = reward + 3
                     if len(self.red_balls_prev) > 0:
@@ -305,7 +309,7 @@ class Task:
         for i, b_ball in enumerate(self.blue_balls):
             cx = int(round(1.0*b_ball[0]/trans_scale))
             cy = int(round(abs(1.0*b_ball[1]/trans_scale)))
-            if  cy < reward_region_y and cy >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
+            if  cy < reward_region_y and cy >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2):
                 if  cx == reward_region_x[1]:
                     reward = reward + 7
                 elif cx == reward_region_x[0]:
@@ -456,7 +460,6 @@ class Task:
             frame_debug = self.draw_debug_frame(self.frame)
             cv2.imshow("frame_debug", frame_debug)
             cv2.imshow("frame_debug_gray", self.frame_gray)
-            cv2.waitKey(100)
 
         return self.frame_gray, reward, self.done
 
