@@ -249,9 +249,8 @@ def dqn_learing(
             optimizer.zero_grad()
             loss.backward()
 
-
             # Perfom the update
-            # 업데이으 후 업데이트 횟수도 업데이트
+            # 업데이트 후 업데이트 횟수도 업데이트
             optimizer.step()
             num_param_updates += 1
 
