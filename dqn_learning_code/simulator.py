@@ -296,9 +296,9 @@ class Task:
             cy = round(1.0*r_ball[1]/trans_scale)
             if  cy < reward_region_y and cy >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                 if cx == reward_region_x[1]:
-                    reward += 7
+                    reward += 10
                 else:
-                    reward += 3
+                    reward += 7
                 if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                     self.sorting_plate_state != sorting_plate_state_dic['RED']:
                     reward = -2
@@ -310,9 +310,9 @@ class Task:
             cy = round(1.0*b_ball[1]/trans_scale)
             if  cy < reward_region_y and cy >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                 if  cx == reward_region_x[1]:
-                    reward += 7
+                    reward += 10
                 else:
-                    reward += 3
+                    reward += 7
                 if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                     self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
                     reward = -2
@@ -340,7 +340,7 @@ class Task:
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
                 if action == 8:
-                    reward += 0.01
+                    reward += 0.001
             else:
                 self.ball_inscreen_flag = 0
 
