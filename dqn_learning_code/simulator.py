@@ -428,7 +428,7 @@ class Task:
         enable_move = True
         for obstacle in obstacles_temp:
             # if int(abs(1.0*obstacle[0]/trans_scale)) <= 0 and int(abs(1.0*obstacle[1]/trans_scale)) <= 0:
-            if abs(1.0*obstacle[0]) < 2.0 and abs(1.0*obstacle[1]) < 2.0:
+            if abs(1.0*obstacle[0]) < 4.0 and abs(1.0*obstacle[1]) < 5.0:
                 enable_move = False
 
         reward = 0
