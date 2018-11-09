@@ -1,5 +1,5 @@
 data/*
-
+.vscode/*
 *~
 *.pyc
 *.pth
