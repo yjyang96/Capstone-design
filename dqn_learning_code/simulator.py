@@ -87,6 +87,7 @@ class Task:
         self.write_flag = False
         self.ball_inscreen_flag = 0
 
+        #비디오 녹화 주기를 줄여주었다.
         if len(self.episode_rewards)%200 == 0 and not self.test_flag:
             self.write_flag = True
             out_directory = "data/video/tt.video."+format(len(self.episode_rewards)/200,"08")+".mp4"
@@ -238,6 +239,8 @@ class Task:
 
     def draw_state_gray(self):
         gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
+        # 다음 교육에는 sorting plate 상태에 따라 gray에도 표시해줌
+        # gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot_red":200, "robot_blue":180, "robot_padding":150}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
 
         for i in range(simulator["width"]):
@@ -253,6 +256,9 @@ class Task:
                     ((simulator["center"]+2)*debug_scale_gray,(simulator["height"]-(Back_pixels-2))*debug_scale_gray-1),gray_color["robot_padding"],-1)
         cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
                     ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot"],-1)
+        # cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
+        #             ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
+
 
         return self.frame_gray
 

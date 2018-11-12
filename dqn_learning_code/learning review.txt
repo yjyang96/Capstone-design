@@ -1,0 +1,12 @@
+대부분의 공을 중심으로, 원하는 sorting plate state 상태로 잘 집는다.
+예를 들어 data/video/tt.video.001717.0.mp4 가 있다.
+
+하지만 공의 표현이 이산적이지 않고, 많은 state를 반복하여도 손해가 없기 때문에 deadlock이 걸리는 경우가 있다.
+앞으로 같은 state들을 반복하면 음의 reward를 주면 해결 될 것 같다.
+
+지금도 원하는 sorting plate state로 공을 줍지만, 후에 원하는 만큼 교육이 되지 않는다면 rb(ball color) 2 channel 혹은, g(obstacle) 3 channel로 교육을 시도해봐야겠다.
+지금은 비슷한 수 (gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150})를 이용하여 만든 이미지로 러닝하므로, 효과적이지 못 할 수 있다.
+
+교육된 모델의 경로가 약간 진동하는 경우도 있어서, 같은 action을 반복하면 약간의 reward를 줄 생각이었다.
+그러나 대각선 action수를 줄이는게 더 효과적으로 보인다.
+이로도 부족하면 추가하는 것으로 생각하고 있다.
