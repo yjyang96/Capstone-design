@@ -172,8 +172,15 @@ class Task:
             f_x = (np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy)
             f_y = (np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx)
             insert = True
+            for b in self.red_balls:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                    insert = False
+                    break
+            for b in self.blue_balls:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                    insert = False
+                    break
             if insert:
-                self.balls.append([f_x,f_y])
                 if i < max_balls/2:
                     self.red_balls.append([f_x,f_y])
                 else:
@@ -456,6 +463,7 @@ class Task:
             frame_debug = self.draw_debug_frame(self.frame)
             cv2.imshow("frame_debug", frame_debug)
             cv2.imshow("frame_debug_gray", self.frame_gray)
+            cv2.waitKey(100)
 
         return self.frame_gray, reward, self.done
 

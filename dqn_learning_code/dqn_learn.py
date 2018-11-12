@@ -39,7 +39,7 @@ OptimizerSpec = namedtuple("OptimizerSpec", ["constructor", "kwargs"])
 # 함수 DQN learning정의
 
 ## DQN learning의 input parameters는 다음과 같다
-### env: enviornment, 즉 training하게 될 이미지
+### env: enviornment, 즉 training을 적용할 시뮬레이터
 ### q_func: Q function을 계산할 때 사용할 모델
 ### optimizer_spec: Optimizer 관련 specifications
 ### exploration: exploration epsilon greedy schedule 설정
@@ -113,7 +113,7 @@ def dqn_learing(
     # BUILD MODEL / 모델 만들기 #
     ############################
 
-    # Observation에 따라 Q function에 들어갈 input_arg를 설정
+    # Observation 크기에 따라 Q function에 들어갈 input_arg 설정
     if len(env.observation_space.shape) == 1:
         # This means we are running on low-dimensional observations (e.g. RAM)
         input_arg = env.observation_space.shape[0]
@@ -141,7 +141,7 @@ def dqn_learing(
 
 
     # Initialize target q function and q function
-    # Q function과 target Q function을 정의
+    # Q function과 target Q function 생성
     Q = q_func(input_arg, num_actions).type(dtype)
     target_Q = q_func(input_arg, num_actions).type(dtype)
 
@@ -156,6 +156,7 @@ def dqn_learing(
     ###############
     # RUN ENV     #
     ###############
+    #초기값 설정
     num_param_updates = 0
     mean_episode_reward = -float('nan')
     best_mean_episode_reward = -float('inf')
@@ -284,6 +285,6 @@ def dqn_learing(
             print("exploration %f" % exploration.value(t))
             sys.stdout.flush()
             torch.save(Q, 'DQN_net1029.pt')
-            ## file 이름 바꾸기
+            ## 적당한 파일에 저장
 
     writer.close()
