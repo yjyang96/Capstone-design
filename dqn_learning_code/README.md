@@ -1,9 +1,31 @@
+# Assignment 5
+
+1. 팀 소개
+BAM조
+오준호 교수님
+20140344 양예준/20140870 이보미/20150629 이해우
+
+2. 수정한 파일 명
+simulator.py
+map_gen.yaml
+blockdiagram/simulator.pdf
+data/video/tt.video.001717.0.mp4
+
+3. 리뷰한 파일 명
+dqn_learn.py
+learning review.txt
+
+# 환경
+window10
+python3 64bit
+opencv, pytorch, numpy, pyyaml
+
 # Usage
 
 To train a model:
 
 ```
-$ python3 main.py or python main.py
+$ python main.py
 
 ```
 

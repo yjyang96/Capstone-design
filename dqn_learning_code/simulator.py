@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 import cv2
 import numpy as np
-# import rospy, roslib, rospkg
 import yaml, sys, time, random
+# import rospy, roslib, rospkg
 
 # from sensor_msgs.msg import Image
 # from geometry_msgs.msg import Vector3
@@ -12,10 +12,8 @@ import yaml, sys, time, random
 
 simulator = {"width":31, "height":31, "center":15, "resol":3}
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5}
-Back_pixels = 4 # # of back side view pixels
-# walls_samples = [[1.2,2.0],[1.4,2.0],[1.6,2.0],[1.2,4.0],[1.4,4.0],[1.6,4.0],[1.2,-2.0],[1.4,-2.0],[1.6,-2.0],[1.2,-4.0],[1.4,-4.0],[1.6,-4.0]]
-walls_samples = [[1.5,-30.0],[30.4,0.7],[-30.4,-0.7]]
-
+# number of pixels behind
+Back_pixels = 4
 camera_fov = 78
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
@@ -31,6 +29,7 @@ debug_scale_gray = 3
 
 max_iter = 99
 
+# We also want to train the sorting plate so that it can move properly when it detect the color of the ball
 sorting_plate_state_dic = {'NULL': 0, 'RED': 1, 'BLUE': 2}
 
 class Task:
@@ -69,7 +68,6 @@ class Task:
         stream = open(path, 'r')
         self._params = yaml.load(stream)
 
-        # self.reset(max_balls=20, max_walls=3)
         return
 
     def reset(self, max_balls=10, max_walls=2):
@@ -89,6 +87,7 @@ class Task:
         self.write_flag = False
         self.ball_inscreen_flag = 0
 
+        #비디오 녹화 주기를 줄여주었다.
         if len(self.episode_rewards)%200 == 0 and not self.test_flag:
             self.write_flag = True
             out_directory = "data/video/tt.video."+format(len(self.episode_rewards)/200,"08")+".mp4"
@@ -101,38 +100,42 @@ class Task:
             codec = cv2.VideoWriter_fourcc(*'mp4v')
             fps = 10
             self.video = cv2.VideoWriter(out_directory, codec, fps, (simulator["width"]*debug_scale,simulator["height"]*debug_scale))
-###########map 수정###############
-        rand_direction = random.random()
+
+        ########### Map constructing ###############
+        rand_map = random.random()
+        walls_initial = []
+        obstacles_initial = []
         obstacles_temp = []
-        walls_initial=[]
-        obs_initial=[]
-        i_t=random.random()*np.pi-np.pi/2 ##initial random theta
-        ran_2=random.random()
-        if rand_direction <= 0.333:
-            w_w=map_param["width"]
-            w_h=map_param["height"]
-            r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
-            r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
-            walls_initial=[]
+        i_t = random.random()*np.pi-np.pi/2 ##initial random theta
+        ran_2 = random.random()
+        if rand_map <= 0.333:
+            # map without walls nor obstacles
+            w_w = map_param["width"]
+            w_h = map_param["height"]
+            r_x = -(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+            r_y = -(w_h-8)/2+random.random()*(12) #initial robot ry map base
+            walls_initial = []
         else:
-            if rand_direction >= 0.666: ## only wall
-                w_w=map_param["width"]+round(random.random()*20) ##random wall width
-                w_h=map_param["height"]+round(random.random()*20) ##random wall height
-                r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
-                r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
+            if rand_map >= 0.666:
+                # map with walls only
+                w_w = map_param["width"]+round(random.random()*20) ##random wall width
+                w_h = map_param["height"]+round(random.random()*20) ##random wall height
+                r_x = -(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+                r_y = -(w_h-8)/2+random.random()*(12) #initial robot ry map base
             else:
-                w_w=map_param["width"]+round(random.random()*20)
-                w_h=map_param["height"]+round(random.random()*20) + 20
-                r_x=-(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
-                r_y=-(w_h-8)/2+random.random()*(12) #initial robot ry map base
+                # map with walls and obstacles
+                w_w = map_param["width"]+round(random.random()*20)
+                w_h = map_param["height"]+round(random.random()*20) + 20
+                r_x = -(w_w-8)/2+random.random()*(w_w-8) #initial robot rx map base
+                r_y = -(w_h-8)/2+random.random()*(12) #initial robot ry map base
                 for i in range(20):
-                    ox =(-w_w/2)+ran_2*(w_w-20)+i
-                    obs_initial.append([ox,-w_h/2+20])
-                    for obs in obs_initial:
-                        x=obs[0]
-                        y=obs[1]
-                        t_x=np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
-                        t_y=np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
+                    ox = (-w_w/2)+ran_2*(w_w-20)+i
+                    obstacles_initial.append([ox,-w_h/2+20])
+                    for obstacle in obstacles_initial:
+                        x = obstacle[0]
+                        y = obstacle[1]
+                        t_x = np.cos(i_t)*x - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*y
+                        t_y = np.cos(i_t)*y - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*x
                         obstacles_temp.append([t_x,t_y])
             for i in range(w_w):
                 cx = -round(w_w/2)+i
@@ -162,15 +165,23 @@ class Task:
             cx = obstacle[0]
             cy = obstacle[1]
             self.obstacles.append([cx,cy])
-#########################여기까지#################33
+        ##################### End of the Map constructing ###################
+
         for i in range(max_balls):
-            cx = int(1.0*(2*random.random()-1)*(w_w/2-trans_scale))
-            cy = int(-w_h/2+20+trans_scale+random.random()*(w_h-20-2*trans_scale))
-            f_x=(np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy)
-            f_y=(np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx)
+            cx = int(1.0*(2*random.random() - 1)*(w_w/2 - trans_scale))
+            cy = int(-w_h/2 + 20 + trans_scale + random.random()*(w_h - 20 - 2*trans_scale))
+            f_x = (np.cos(i_t)*cx - np.cos(i_t)*r_x - r_y*np.sin(i_t) + np.sin(i_t)*cy)
+            f_y = (np.cos(i_t)*cy - np.cos(i_t)*r_y + r_x*np.sin(i_t) - np.sin(i_t)*cx)
             insert = True
+            for b in self.red_balls:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                    insert = False
+                    break
+            for b in self.blue_balls:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                    insert = False
+                    break
             if insert:
-                self.balls.append([f_x,f_y])
                 if i < max_balls/2:
                     self.red_balls.append([f_x,f_y])
                 else:
@@ -228,6 +239,8 @@ class Task:
 
     def draw_state_gray(self):
         gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
+        # 다음 교육에는 sorting plate 상태에 따라 gray에도 표시해줌
+        # gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot_red":200, "robot_blue":180, "robot_padding":150}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
 
         for i in range(simulator["width"]):
@@ -243,6 +256,9 @@ class Task:
                     ((simulator["center"]+2)*debug_scale_gray,(simulator["height"]-(Back_pixels-2))*debug_scale_gray-1),gray_color["robot_padding"],-1)
         cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
                     ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot"],-1)
+        # cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
+        #             ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
+
 
         return self.frame_gray
 
@@ -333,9 +349,6 @@ class Task:
                 and abs(1.0*b_ball[0]) <= map_param["center"] and abs(1.0*b_ball[1]) < map_param["height"]:
                 blue_balls_inscreen.append(b_ball)
 
-        # if self.debug_flag:
-        #     print("balls length : "+str(len(balls_temp))+"  score : "+str(self.score)+"  screen_flag : "+str(self.ball_inscreen_flag))
-
         if action in range(self.action_space.size):
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
@@ -354,12 +367,11 @@ class Task:
                 print ("video saved")
 
         if action == -1:
-            return -1   
+            return -1
         else:
             return reward
 
     def step(self, action):
-        # print "action "+str(action)
         if action in range(self.action_space.size):
             self.iter = self.iter + 1
 
@@ -370,17 +382,17 @@ class Task:
         elif action == 1: # forward right
             del_x, del_y = -1, -1
         elif action == 2: # right
-            del_x, del_y = -1, 0  
+            del_x, del_y = -1, 0
         elif action == 3: # backward right
             del_x, del_y = -1, 1
         elif action == 4: # backward
-            del_x, del_y = 0, 1 
+            del_x, del_y = 0, 1
         elif action == 5: # bacward left
-            del_x, del_y = 1, 1 
+            del_x, del_y = 1, 1
         elif action == 6: # left
             del_x, del_y = 1, 0
         elif action == 7: # forward left
-            del_x, del_y = 1, -1  
+            del_x, del_y = 1, -1
         elif action == 8: # turn left
             rot = -1
         elif action == 9: # turn right
@@ -430,7 +442,6 @@ class Task:
 
         enable_move = True
         for obstacle in obstacles_temp:
-            # if int(abs(1.0*obstacle[0]/trans_scale)) <= 0 and int(abs(1.0*obstacle[1]/trans_scale)) <= 0:
             if abs(1.0*obstacle[0]) < 4.0 and abs(1.0*obstacle[1]) < 5.0:
                 enable_move = False
 
@@ -457,6 +468,7 @@ class Task:
             frame_debug = self.draw_debug_frame(self.frame)
             cv2.imshow("frame_debug", frame_debug)
             cv2.imshow("frame_debug_gray", self.frame_gray)
+            cv2.waitKey(100)
 
         return self.frame_gray, reward, self.done
 

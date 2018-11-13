@@ -10,7 +10,7 @@ import cv2
 frame_history_len=4
 
 dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTensor
-env = simulator.Task(debug_flag=True, test_flag=False, state_blink=False, state_inaccurate=True)
+env = simulator.Task(debug_flag=True, test_flag=False, state_blink=False, state_inaccurate=False)
 
 
 if len(env.observation_space.shape) == 1:
@@ -20,8 +20,8 @@ else:
     img_h, img_w, img_c = env.observation_space.shape
     input_arg = frame_history_len * img_c
 
-test_model = torch.load('DQN_net0729.pt')
-print('DQN_net0729.pt')
+test_model = torch.load('DQN_net1029 - timestep 25000000.pt')
+print('DQN_net1029 - timestep 25000000.pt')
 
 input_image = np.zeros((input_arg,img_w,img_h), np.uint8)
 
