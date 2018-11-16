@@ -9,6 +9,9 @@ Write down any ideas about rewarding strategies to improve the performance.
 Since the position of the ball is not discrete (I not sure whether I understand correctly - Bomi), and there is no reduction of the point even if it repeat the state, there are occasions fall in to deadlock.
 This might be fixed if negative reward is given for the repeating state.
 
+## 같은 자리에서 반복하는 경우가 다반사인데
+ rx ry를 받아와서, 몇 초동안 비슷한 위치면 감점하는 식이나 현재 10번의 step동안 공이 안들어오면 꺼지게 되어있는데 그냥 감점하는 식으로 하면 되지 않을까요.. 
+
 
 2. 
 지금도 원하는 sorting plate state로 공을 줍지만, 후에 원하는 만큼 교육이 되지 않는다면 rb(ball color) 2 channel 혹은, g(obstacle) 3 channel로 교육을 시도해봐야겠다.
@@ -26,3 +29,5 @@ At this moment, we use (gray_color = {"red_ball":255, "blue_ball":220, "wall":10
 There are some cases where the path of the model oscillate and thus small amount of reward is one of the solution for the same action.
 However, reducing the diagonal direction action seems more effective.
 If these do not improve the performance, maybe add some actions. 
+
+ 
