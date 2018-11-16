@@ -10,11 +10,17 @@ import yaml, sys, time, random
 # from cv_bridge import CvBridge, CvBridgeError
 # from sensor_msgs.msg import CompressedImage
 
-simulator = {"width":31, "height":31, "center":15, "resol":3} # Size of the windows (Just for visualization)
+simulator = {"width":31, "height":31, "center":15, "resol":3  } # Size of the windows (Just for visualization)
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size of the map (Should be same with real one?)
+## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
 Back_pixels = 4
+margin = 4 ## MARGIN 
+ball_margin=10
+Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
+obstacle_base=2/5*map_param["height"] ## 
+obstacle_length=int(2/5*map_param["width"]) ##
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
@@ -126,32 +132,32 @@ class Task:
         walls_initial = []
         obstacles_initial = []
         obstacles_temp = []
-        i_t = random.random()*np.pi - np.pi/2 # initial random theta
-        ran_2 = random.random()
+        i_t = random.random()*np.pi - np.pi/2 # initial random theta, the angle difference with map orientation and car orientation.
+        ran_obs = random.random()
         rand_map = random.random()
         if rand_map <= 0.333:
             # map without walls nor obstacles
             w_w = map_param["width"]
             w_h = map_param["height"]
-            r_x = -(w_w-8)/2 + random.random()*(w_w - 8) # initial robot rx map base
-            r_y = -(w_h-8)/2 + random.random()*(12) # initial robot ry map base
+            r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
+            r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
             walls_initial = []
         else:
             if rand_map >= 0.666:
                 # map with walls only
-                w_w = map_param["width"] + round(random.random()*20) # random wall width
-                w_h = map_param["height"] + round(random.random()*20) # random wall height
-                r_x = -(w_w - 8)/2 + random.random()*(w_w - 8) # initial robot rx map base
-                r_y = -(w_h - 8)/2 + random.random()*(12) # initial robot ry map base
+                w_w = map_param["width"] + round(random.random()*Ran_wall) # random wall width
+                w_h = map_param["height"] + round(random.random()*Ran_wall) # random wall height
+                r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
+                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
             else:
                 # map with walls and obstacles
-                w_w = map_param["width"] + round(random.random()*20)
-                w_h = map_param["height"] + round(random.random()*20) + 20
-                r_x = -(w_w - 8)/2 + random.random()*(w_w - 8) # initial robot rx map base
-                r_y = -(w_h - 8)/2 + random.random()*(12) # initial robot ry map base
-                for i in range(20):
-                    ox = (-w_w/2) + ran_2*(w_w - 20) + i
-                    obstacles_initial.append([ox, -w_h/2 + 20])
+                w_w = map_param["width"] + round(random.random()*Ran_wall)
+                w_h = map_param["height"] + round(random.random()*Ran_wall) + round(obstacle_base)
+                r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
+                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
+                for i in range(obstacle_length):
+                    ox = (-w_w/2) + ran_obs*(w_w - obstacle_length) + i ##obstacle's x coordinate
+                    obstacles_initial.append([ox, -w_h/2 + obstacle_base]) 
                     for obstacle in obstacles_initial:
                         x = obstacle[0]
                         y = obstacle[1]
@@ -193,17 +199,17 @@ class Task:
 
         # Place balls randomly
         for i in range(max_balls):
-            cx = int(1.0*(2*random.random() - 1)*(w_w/2 - trans_scale))
-            cy = int(-w_h/2 + 20 + trans_scale + random.random()*(w_h - 20 - 2*trans_scale))
+            cx = int(1.0*(2*random.random() - 1)*(w_w/2 - margin)) ## ball x-cor 
+            cy = int(-w_h/2 + obstacle_base + margin + random.random()*(w_h - obstacle_base - 2*margin)) ##ball y-cor
             f_x = np.cos(i_t)*(cx - r_x) + np.sin(i_t)*(cy - r_y)
             f_y = -np.sin(i_t)*(cx - r_x) + np.cos(i_t)*(cy - r_y)
             insert = True
             for b in self.red_balls:
-                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < (ball_margin)*(ball_margin): ##ball margin
                     insert = False
                     break
             for b in self.blue_balls:
-                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < 49:
+                if (b[0]-f_x)*(b[0]-f_x) + (b[1]-f_y)*(b[1]-f_y) < (ball_margin)*(ball_margin):
                     insert = False
                     break
             if insert:
