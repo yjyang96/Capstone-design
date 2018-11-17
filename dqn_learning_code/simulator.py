@@ -10,11 +10,13 @@ import yaml, sys, time, random
 # from cv_bridge import CvBridge, CvBridgeError
 # from sensor_msgs.msg import CompressedImage
 
-simulator = {"width":31, "height":31, "center":15, "resol":3  } # Size of the windows (Just for visualization)
+simulator = {"width":31, "height":31, "center":15, "resol":2} # Size of the windows (Just for visualization)
 map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size of the map (Should be same with real one?)
+## simulator resol could be non interge to make precise in our case. our robots 304*502
+## it is more nature when we use simulator resol is 2 then 10cm per 1 simulator then .. pixel 3*5.. 
 ## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
-Back_pixels = 4
+Back_pixels = 6
 margin = 4 ## MARGIN 
 ball_margin=10
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
@@ -26,7 +28,6 @@ ball_blind_bias = 1
 
 reward_region_x = [-1,0,1]
 reward_region_y = 2
-
 trans_scale = int(simulator["resol"]/map_param["resol"])
 rot_scale = 20
 
@@ -426,7 +427,7 @@ class Task:
         for i, r_ball in enumerate(self.red_balls):
             cx = round(1.0*r_ball[0]/trans_scale)
             cy = round(1.0*r_ball[1]/trans_scale)
-            if cy < reward_region_y and cy >= 0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+            if cy < reward_region_y and cy >=0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                 if cx == reward_region_x[1]:
                     reward += 10
                 else:
@@ -442,7 +443,7 @@ class Task:
         for i, b_ball in enumerate(self.blue_balls):
             cx = round(1.0*b_ball[0]/trans_scale)
             cy = round(1.0*b_ball[1]/trans_scale)
-            if cy < reward_region_y and cy >= 0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+            if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                 if  cx == reward_region_x[1]:
                     reward += 10
                 else:
@@ -532,7 +533,6 @@ class Task:
         red_balls_temp = []
         blue_balls_temp = []
         obstacles_temp = []
-
         del_x = del_x * trans_scale
         del_y = del_y * trans_scale
 
@@ -559,14 +559,13 @@ class Task:
                 ball_dist = np.concatenate((ball_dist.reshape(-1,1),ball_dist.reshape(-1,1)),axis=1)
                 rot_delta = np.multiply(ball_dist, rot_delta_unit)
                 points = np.subtract(points, rot_delta)
-
                 red_balls_temp = points[0:len(self.red_balls)]
                 blue_balls_temp = points[len(self.red_balls):len(self.red_balls)+len(self.blue_balls)]
                 obstacles_temp = points[len(self.red_balls)+len(self.blue_balls):]
 
         enable_move = True
         for obstacle in obstacles_temp:
-            if abs(1.0*obstacle[0]) < 4.0 and abs(1.0*obstacle[1]) < 5.0:
+            if abs(1.0*obstacle[0]) < 4.0*trans_scale/3 and abs(1.0*obstacle[1]) < 5.0*trans_scale/3:
                 enable_move = False
 
         reward = 0
