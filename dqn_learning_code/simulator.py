@@ -27,7 +27,7 @@ ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
 reward_region_x = [-1,0,1]
-reward_region_y = 2
+reward_region_y = 3
 trans_scale = int(simulator["resol"]/map_param["resol"])
 rot_scale = 20
 
@@ -304,9 +304,9 @@ class Task:
         # Boundary of the robot
         cv2.rectangle(frame_debug,
                       ((simulator["center"] - 1)*debug_scale - 1,
-                       (simulator["height"] - (Back_pixels + 1))*debug_scale + 1),
+                       (simulator["height"] - (Back_pixels + 2))*debug_scale + 1),
                       ((simulator["center"] + 2)*debug_scale,
-                       (simulator["height"] - (Back_pixels - 2))*debug_scale - 1),
+                       (simulator["height"] - (Back_pixels - 3))*debug_scale - 1),
                       (0, 0, 255),
                       2)
         # Right line view angle
@@ -365,8 +365,8 @@ class Task:
                                   -1)
 
         cv2.rectangle(self.frame_gray,
-                      ((simulator["center"] - 1)*debug_scale_gray, (simulator["height"] - (Back_pixels + 1))*debug_scale_gray + 1),
-                      ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels - 2))*debug_scale_gray - 1),
+                      ((simulator["center"] - 1)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray + 1),
+                      ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1),
                       gray_color["robot_padding"],
                       -1)
         cv2.rectangle(self.frame_gray,
@@ -565,7 +565,7 @@ class Task:
 
         enable_move = True
         for obstacle in obstacles_temp:
-            if abs(1.0*obstacle[0]) < 4.0*trans_scale/3 and abs(1.0*obstacle[1]) < 5.0*trans_scale/3:
+            if abs(1.0*obstacle[0]) < 4.0*trans_scale/3 and abs(1.0*obstacle[1]) < 8.0*trans_scale/3:
                 enable_move = False
 
         reward = 0
