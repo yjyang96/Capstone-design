@@ -181,9 +181,6 @@ class Task:
         ran_obs = random.random()
         rand_map = random.random()
 
-        # Force debug ------------------------------------------------------------------------
-        i_t = 0
-
         # if rand_map <= 0.333:
         #     # map without walls nor obstacles
         #     w_w = map_param["width"]
@@ -205,7 +202,8 @@ class Task:
         r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
         r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
         
-        # force debug
+        # Force debug ------------------------------------------------------------------------
+        i_t = 0
         r_x = 0
         r_y = 0
         w_w = map_param["width"]
