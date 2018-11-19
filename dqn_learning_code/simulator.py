@@ -51,6 +51,10 @@ class Task:
         self.red_balls_prev = []
         self.blue_balls_prev = []
         self.obstacles = []
+        self.state_dis_cor=[]
+        self.state_dis_cen=[]
+        self.robots_cen=[] #center
+        self.robots_cor=[] #right above cor
         # For ...
         self.episode_rewards = []
         self.score = 0
@@ -85,7 +89,12 @@ class Task:
         self.blue_balls = []
         self.red_balls_prev = []
         self.blue_balls_prev = []
+        self.robots=[]
+        self.state_dis_cor=[]
+        self.state_dis_cen=[]
         self.obstacles = []
+        self.robots_cen=[] #center
+        self.robots_cor=[] #right above cor
         self.score = 0
         self.iter = 0
         self.sorting_plate_state = sorting_plate_state_dic['RED']
@@ -181,7 +190,12 @@ class Task:
                 cx = -round(w_w/2)
                 cy = -round(w_h/2) + w_h - i
                 walls_initial.append([cx, cy])
-
+        m_x=np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
+        m_y=-np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
+        mc_x=np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
+        mc_y = -np.sin(i_t)*(w_w/2 - r_x) + np.cos(i_t)*(w_h/2 - r_y)
+        self.robots_cen=[[m_x,m_y]]
+        self.robots_cor=[[mc_x,mc_y]]
         # Rotate everything to robot's frame
         #   [x'] = [ cos   sin][x - r_x]
         #   [y']   [-sin   cos][y - r_y]
@@ -338,9 +352,9 @@ class Task:
         return frame_debug
 
     def draw_state_gray(self):
-        gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
+        #gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
         # 다음 교육에는 sorting plate 상태에 따라 gray에도 표시해줌
-        # gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot_red":200, "robot_blue":180, "robot_padding":150}
+        gray_color = {"red_ball":255, "blue_ball":50, "wall":100, "robot_red":200, "robot_blue":125, "robot_padding":150}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
 
         for i in range(simulator["width"]):
@@ -369,13 +383,13 @@ class Task:
                       ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1),
                       gray_color["robot_padding"],
                       -1)
-        cv2.rectangle(self.frame_gray,
-                      (simulator["center"]*debug_scale_gray, (simulator["height"] - (Back_pixels + 0))*debug_scale_gray + 1),
-                      ((simulator["center"] + 1)*debug_scale_gray, (simulator["height"] - (Back_pixels - 1))*debug_scale_gray - 1),
-                      gray_color["robot"],
-                      -1)
-        # cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
-        #             ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
+        #cv2.rectangle(self.frame_gray,
+        #              (simulator["center"]*debug_scale_gray, (simulator["height"] - (Back_pixels + 0))*debug_scale_gray + 1),
+        #              ((simulator["center"] + 1)*debug_scale_gray, (simulator["height"] - (Back_pixels - 1))*debug_scale_gray - 1),
+        #              gray_color["robot"],
+        #              -1)
+        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
+                     ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
 
         return self.frame_gray
 
@@ -422,7 +436,6 @@ class Task:
         reward = 0
         red_balls_temp = []
         blue_balls_temp = []
-
         # reward for red ball
         for i, r_ball in enumerate(self.red_balls):
             cx = round(1.0*r_ball[0]/trans_scale)
@@ -459,6 +472,8 @@ class Task:
 
         red_balls_inscreen = []
         blue_balls_inscreen = []
+        robots_dis_cor=[]
+        robots_dis_cen=[]
         for r_ball in red_balls_temp:
             if r_ball[1] >= ball_blind_ratio * (abs(1.0*r_ball[0]) - ball_blind_bias)\
                 and abs(1.0*r_ball[0]) <= map_param["center"] and abs(1.0*r_ball[1]) < map_param["height"]:
@@ -476,15 +491,40 @@ class Task:
                     reward += 0.001
             else:
                 self.ball_inscreen_flag = 0
+        
+        if action in range(self.action_space.size):
+            robots_dis_cen=np.sqrt((self.robots_cen[0][0])*(self.robots_cen[0][0])+(self.robots_cen[0][1])*(self.robots_cen[0][1]))
+            if len(self.state_dis_cen) < 4 :
+                self.state_dis_cen.append(robots_dis_cen)
+            else :
+                self.state_dis_cen[0]=self.state_dis_cen[1]
+                self.state_dis_cen[1]=self.state_dis_cen[2]
+                self.state_dis_cen[2]=self.state_dis_cen[3]
+                self.state_dis_cen[3]=robots_dis_cen
+            robots_dis_cor=np.sqrt((self.robots_cor[0][0])*(self.robots_cor[0][0])+(self.robots_cor[0][1])*(self.robots_cor[0][1]))
+            if len(self.state_dis_cor) < 4 :
+                self.state_dis_cor.append(robots_dis_cor)
+            else :
+                self.state_dis_cor[0]=self.state_dis_cor[1]
+                self.state_dis_cor[1]=self.state_dis_cor[2]
+                self.state_dis_cor[2]=self.state_dis_cor[3]
+                self.state_dis_cor[3]=robots_dis_cor
+            if len(self.state_dis_cen) == 4 and len(self.state_dis_cor) == 4 :
+                dcen=self.state_dis_cen[3]-self.state_dis_cen[0]
+                dcor=self.state_dis_cor[3]-self.state_dis_cor[0]
+                if dcen*dcen < 10 and dcor*dcor < 10 :
+                    reward -=0.05
+                
+    
 
-        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter or self.ball_inscreen_flag >= 10:
+        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter :#or self.ball_inscreen_flag >= 10
             self.done = True
             if len(red_balls_temp) == 0 and len(blue_balls_temp) == 0:
                 print('len(red_balls_temp) == 0 and len(blue_balls_temp) == 0')
             if self.iter > max_iter:
                 print('self.iter > max_iter')
-            if self.ball_inscreen_flag >= 10:
-                print('self.ball_inscreen_flag >= 10')
+            #if self.ball_inscreen_flag >= 10:
+               # print('self.ball_inscreen_flag >= 10')
 
         if self.done:
             self.episode_rewards.append(self.score)
@@ -533,6 +573,9 @@ class Task:
         red_balls_temp = []
         blue_balls_temp = []
         obstacles_temp = []
+        robots_cen_temp=[]
+        robots_cor_temp=[]
+
         del_x = del_x * trans_scale
         del_y = del_y * trans_scale
 
@@ -545,8 +588,14 @@ class Task:
         if len(self.obstacles) > 0:
             obstacles_temp = np.add(self.obstacles, [del_x,del_y])
 
+        if len(self.robots_cen) > 0:
+            robots_cen_temp = np.add(self.robots_cen, [del_x,del_y])      
+
+        if len(self.robots_cor) > 0:
+            robots_cor_temp = np.add(self.robots_cor, [del_x,del_y])        
+
         if action == 8 or action == 9:
-            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp] if len(x) > 0])
+            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp, robots_cen_temp,robots_cor_temp] if len(x) > 0])
             if points.size > 0:
                 points = points.reshape(-1,2)
                 theta = rot_scale*rot*np.pi/180
@@ -561,17 +610,22 @@ class Task:
                 points = np.subtract(points, rot_delta)
                 red_balls_temp = points[0:len(self.red_balls)]
                 blue_balls_temp = points[len(self.red_balls):len(self.red_balls)+len(self.blue_balls)]
-                obstacles_temp = points[len(self.red_balls)+len(self.blue_balls):]
-
+                obstacles_temp = points[len(self.red_balls)+len(self.blue_balls):len(self.red_balls)+len(self.blue_balls)+len(self.obstacles)]
+                robots_cen_temp= points[len(self.red_balls)+len(self.blue_balls)+len(self.obstacles):len(self.red_balls)+len(self.blue_balls)+len(self.obstacles)+len(self.robots_cen)]
+                robots_cor_temp=points[len(self.red_balls)+len(self.blue_balls)+len(self.obstacles)+len(self.robots_cen):]
         enable_move = True
         for obstacle in obstacles_temp:
             if abs(1.0*obstacle[0]) < 4.0*trans_scale/3 and abs(1.0*obstacle[1]) < 8.0*trans_scale/3:
                 enable_move = False
 
+
+
         reward = 0
         if enable_move:
             self.red_balls = red_balls_temp
             self.blue_balls = blue_balls_temp
+            self.robots_cen = robots_cen_temp
+            self.robots_cor = robots_cor_temp
             reward = self.get_reward(action)
             self.obstacles = obstacles_temp
             self.draw_state()
