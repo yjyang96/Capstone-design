@@ -491,7 +491,8 @@ class Task:
                     reward += 0.001
             else:
                 self.ball_inscreen_flag = 0
-        
+        #distance robots from right above corner and distance robots from center of map /
+        # if 2 variable changes smaller than "10" in 3-steps reward-=0.5
         if action in range(self.action_space.size):
             robots_dis_cen=np.sqrt((self.robots_cen[0][0])*(self.robots_cen[0][0])+(self.robots_cen[0][1])*(self.robots_cen[0][1]))
             if len(self.state_dis_cen) < 4 :
