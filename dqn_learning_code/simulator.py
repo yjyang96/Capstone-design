@@ -21,8 +21,8 @@ margin = 6 ## MARGIN
 ball_margin=5
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
-obstacle_base=2/5*map_param["height"] ## 
-obstacle_length=int(2/5*map_param["width"]) ##
+obstacle_base = 2/5*map_param["height"] ## 
+obstacle_length = int(2/5*map_param["width"]) ##
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
@@ -146,7 +146,7 @@ class Task:
         ran_obs = random.random()
         rand_map = random.random()
         if rand_map <= 0.333:
-            # map without walls nor obstacles
+            # map without walls nor obstacles (Do we need this case?)
             w_w = map_param["width"]
             w_h = map_param["height"]
             r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
@@ -162,11 +162,11 @@ class Task:
             else:
                 # map with walls and obstacles
                 w_w = map_param["width"] + round(random.random()*Ran_wall)
-                w_h = map_param["height"] + round(random.random()*Ran_wall) + round(obstacle_base)
+                w_h = map_param["height"] + round(random.random()*Ran_wall + obstacle_base)
                 r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
-                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
+                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base - 2*margin) # initial robot ry map base
                 for i in range(obstacle_length):
-                    ox = (-w_w/2) + ran_obs*(w_w - obstacle_length) + i ##obstacle's x coordinate
+                    ox = (-w_w/2) + ran_obs*(w_w - obstacle_length) + i # obstacle's x coordinate
                     obstacles_initial.append([ox, -w_h/2 + obstacle_base]) 
                     for obstacle in obstacles_initial:
                         x = obstacle[0]
@@ -175,33 +175,32 @@ class Task:
                         t_y = -np.sin(i_t)*(x - r_x) + np.cos(i_t)*(y - r_y)
                         obstacles_temp.append([t_x, t_y])
             for i in range(w_w):
-                cx = -round(w_w/2) + i
-                cy = -round(w_h/2)
+                cx = - w_w/2 + i  # This will be floating number anyway when multiply by rotation matrix (So remove round() ?)
+                cy = - w_h/2
                 walls_initial.append([cx, cy])
             for i in range(w_h):
-                cx = -round(w_w/2) + w_w
-                cy = -round(w_h/2) + i
+                cx = - w_w/2 + w_w
+                cy = - w_h/2 + i
                 walls_initial.append([cx, cy])
             for i in range(w_w):
-                cx = -round(w_w/2) + w_w - i
-                cy = -round(w_h/2) + w_h
+                cx = - w_w/2 + w_w - i
+                cy = - w_h/2 + w_h
                 walls_initial.append([cx, cy])
             for i in range(w_h):
-                cx = -round(w_w/2)
-                cy = -round(w_h/2) + w_h - i
+                cx = - w_w/2
+                cy = - w_h/2 + w_h - i
                 walls_initial.append([cx, cy])
-        m_x=np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
-        m_y=-np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
-        mc_x=np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
+        
+        m_x = np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
+        m_y = -np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
+        mc_x = np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
         mc_y = -np.sin(i_t)*(w_w/2 - r_x) + np.cos(i_t)*(w_h/2 - r_y)
-        self.robots_cen=[[m_x,m_y]]
-        self.robots_cor=[[mc_x,mc_y]]
+        self.robots_cen = [[m_x, m_y]]
+        self.robots_cor = [[mc_x, mc_y]]
         # Rotate everything to robot's frame
         #   [x'] = [ cos   sin][x - r_x]
         #   [y']   [-sin   cos][y - r_y]
-        for wall in walls_initial:
-            x = wall[0]
-            y = wall[1]
+        for x, y in walls_initial:
             f_x = np.cos(i_t)*(x - r_x) + np.sin(i_t)*(y - r_y)
             f_y = -np.sin(i_t)*(x - r_x) + np.cos(i_t)*(y - r_y)
             obstacles_temp.append([f_x, f_y])
@@ -483,7 +482,6 @@ class Task:
                 and abs(1.0*b_ball[0]) <= map_param["center"] and abs(1.0*b_ball[1]) < map_param["height"]:
                 blue_balls_inscreen.append(b_ball)
 
-        # What is this for?
         if action in range(self.action_space.size):
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
@@ -534,7 +532,7 @@ class Task:
                 print ("video saved")
 
         if action == -1:
-            return -1  # Penalize if not able to move (Try -2 ?)
+            return -1
         else:
             return reward
 
@@ -596,7 +594,7 @@ class Task:
             robots_cor_temp = np.add(self.robots_cor, [del_x,del_y])        
 
         if action == 8 or action == 9:
-            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp, robots_cen_temp,robots_cor_temp] if len(x) > 0])
+            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp, robots_cen_temp, robots_cor_temp] if len(x) > 0])
             if points.size > 0:
                 points = points.reshape(-1,2)
                 theta = rot_scale*rot*np.pi/180
