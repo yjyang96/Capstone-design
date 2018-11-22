@@ -4,4 +4,5 @@ data/*
 *.pyc
 *.pth
 runs/*
+runs_bak/*
 __pycache__/*

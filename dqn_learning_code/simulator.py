@@ -17,8 +17,8 @@ map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size 
 ## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
 Back_pixels = 6
-margin = 4 ## MARGIN 
-ball_margin=10
+margin = 6 ## MARGIN 
+ball_margin=5
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
 obstacle_base=2/5*map_param["height"] ## 
@@ -34,7 +34,7 @@ rot_scale = 20
 debug_scale = 10
 debug_scale_gray = 3
 
-max_iter = 99 # why only 99?
+max_iter = 149 # why only 99?
 
 # We also want to train the sorting plate so that it can move properly when it detect the color of the ball
 sorting_plate_state_dic = {'NULL': 0, 'RED': 1, 'BLUE': 2}
@@ -106,11 +106,11 @@ class Task:
         # 비디오 녹화 주기를 줄여주었다.
         if len(self.episode_rewards)%200 == 0 and not self.test_flag:
             self.write_flag = True
-            out_directory = "data/video/tt.video."+format(len(self.episode_rewards)/200,"08")+".mp4"
+            out_directory = "data/video/tt.video."+format(int(len(self.episode_rewards)/200),"08")+".mp4"
 
         if self.test_flag:
             self.write_flag = True
-            out_directory = "data/video_test/tt.video."+format(len(self.episode_rewards),"08")+".mp4"
+            out_directory = "data/video_test/tt.video."+format(int(len(self.episode_rewards)),"08")+".mp4"
 
         if self.write_flag:
             codec = cv2.VideoWriter_fourcc(*'mp4v')
@@ -488,7 +488,7 @@ class Task:
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
                 if action == 8:
-                    reward += 0.001
+                    reward += 0.01
             else:
                 self.ball_inscreen_flag = 0
         #distance robots from right above corner and distance robots from center of map /
@@ -514,7 +514,7 @@ class Task:
                 dcen=self.state_dis_cen[3]-self.state_dis_cen[0]
                 dcor=self.state_dis_cor[3]-self.state_dis_cor[0]
                 if dcen*dcen < 10 and dcor*dcor < 10 :
-                    reward -=0.05
+                    reward -=0.5
                 
     
 

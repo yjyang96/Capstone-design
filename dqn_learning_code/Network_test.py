@@ -20,8 +20,8 @@ else:
     img_h, img_w, img_c = env.observation_space.shape
     input_arg = frame_history_len * img_c
 
-test_model = torch.load('DQN_net1029 - timestep 25000000.pt')
-print('DQN_net1029 - timestep 25000000.pt')
+test_model = torch.load('DQN_net1121_2.pt')
+print('DQN_net1121_2.pt')
 
 input_image = np.zeros((input_arg,img_w,img_h), np.uint8)
 
