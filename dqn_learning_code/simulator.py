@@ -434,6 +434,7 @@ class Task:
 
     def get_reward(self, action):
         reward = 0
+        step_reward = 0
         red_balls_temp = []
         blue_balls_temp = []
         # reward for red ball
@@ -448,12 +449,13 @@ class Task:
                 # For sorting plate
                 if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                     self.sorting_plate_state != sorting_plate_state_dic['RED']:
-                    reward = -2
+                    reward = -5
             else:
                 red_balls_temp.append(r_ball)
         
         # reward for blue ball
         for i, b_ball in enumerate(self.blue_balls):
+            step_reward+=1
             cx = round(1.0*b_ball[0]/trans_scale)
             cy = round(1.0*b_ball[1]/trans_scale)
             if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
@@ -463,7 +465,7 @@ class Task:
                     reward += 7
                 if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                     self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
-                    reward = -2
+                    reward = -5
             else:
                 blue_balls_temp.append(b_ball)
 
@@ -488,11 +490,11 @@ class Task:
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
                 if action == 3:
-                    reward += 0.05
+                    reward += 0.5
             else:
                 self.ball_inscreen_flag = 0
         #distance robots from right above corner and distance robots from center of map /
-        # if 2 variable changes smaller than "10" in 3-steps reward-=0.5
+        # if 2 variable changes smaller than "10" in 3-steps reward-=0.3
         if action in range(self.action_space.size):
             robots_dis_cen=np.sqrt((self.robots_cen[0][0])*(self.robots_cen[0][0])+(self.robots_cen[0][1])*(self.robots_cen[0][1]))
             if len(self.state_dis_cen) < 4 :
@@ -514,13 +516,13 @@ class Task:
                 dcen=self.state_dis_cen[3]-self.state_dis_cen[0]
                 dcor=self.state_dis_cor[3]-self.state_dis_cor[0]
                 if dcen*dcen < 10 and dcor*dcor < 10 :
-                    reward -=0.5
-                
-    
+                    reward -= 0.3
 
-        if (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) or self.iter > max_iter :#or self.ball_inscreen_flag >= 10
+        if self.iter > max_iter or (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) : #or self.ball_inscreen_flag >= 10
             self.done = True
             if len(red_balls_temp) == 0 and len(blue_balls_temp) == 0:
+                #reward+=(max_iter-step_reward)/2
+                #print(reward)
                 print('len(red_balls_temp) == 0 and len(blue_balls_temp) == 0')
             if self.iter > max_iter:
                 print('self.iter > max_iter')
