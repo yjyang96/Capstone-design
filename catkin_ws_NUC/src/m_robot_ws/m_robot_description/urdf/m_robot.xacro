@@ -1,0 +1,229 @@
+<?xml version='1.0'?>
+
+<robot name="m_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find m_robot_description)/urdf/m_robot.gazebo" />
+  <!-- asdasdasd-->
+  <link name='base_frame'>
+    <pose>0 0 0.1 0 0 0</pose>
+    <inertial>
+      <mass value="5.0"/>
+      <origin xyz="0.0 0 0.0" rpy=" 0 0 0"/>
+      <inertia
+          ixx="0.0135" ixy="0" ixz="0"
+          iyy="0.024" iyz="0"
+          izz="0.0375"
+      />
+    </inertial>
+
+    <collision name='base_frame_collision'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size=".24 .18 .02"/>
+      </geometry>
+    </collision>
+    <visual name='base_frame_visual'>
+      <origin xyz="0 0 0" rpy=" 0 0 0"/>
+      <geometry>
+        <box size=".24 .18 .02"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="left_wheel_front">
+    <!--origin xyz="0.1 0.13 0.1" rpy="0 1.5707 1.5707"/-->
+    <collision name="left_wheel_front_collision">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </collision>
+    <visual name="left_wheel_front_visual">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <mass value="2.5"/>
+      <cylinder_inertia m="2.5" r="0.05" h="0.02"/>
+      <inertia
+        ixx="0.001646" ixy="0.0" ixz="0.0"
+        iyy="0.001646" iyz="0.0"
+        izz="0.003125"/>
+    </inertial>
+  </link>
+
+  <link name="right_wheel_front">
+    <!--origin xyz="0.1 -0.13 0.1" rpy="0 1.5707 1.5707"/-->
+    <collision name="right_wheel_front_collision">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </collision>
+    <visual name="right_wheel_front_visual">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <mass value="2.5"/>
+      <cylinder_inertia m="2.5" r="0.05" h="0.02"/>
+      <inertia
+        ixx="0.001646" ixy="0.0" ixz="0.0"
+        iyy="0.001646" iyz="0.0"
+        izz="0.003125"/>
+    </inertial>
+  </link>
+
+  <link name="left_wheel_back">
+    <!--origin xyz="0.1 0.13 0.1" rpy="0 1.5707 1.5707"/-->
+    <collision name="left_wheel_back_collision">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </collision>
+    <visual name="left_wheel_back_visual">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <mass value="2.5"/>
+      <cylinder_inertia m="2.5" r="0.05" h="0.02"/>
+      <inertia
+        ixx="0.001646" ixy="0.0" ixz="0.0"
+        iyy="0.001646" iyz="0.0"
+        izz="0.003125"/>
+    </inertial>
+  </link>
+
+  <link name="right_wheel_back">
+    <!--origin xyz="0.1 -0.13 0.1" rpy="0 1.5707 1.5707"/-->
+    <collision name="right_wheel_back_collision">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </collision>
+    <visual name="right_wheel_back_visual">
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.02"/>
+      </geometry>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 1.5707 1.5707"/>
+      <mass value="2.5"/>
+      <cylinder_inertia m="2.5" r="0.05" h="0.02"/>
+      <inertia
+        ixx="0.001646" ixy="0.0" ixz="0.0"
+        iyy="0.001646" iyz="0.0"
+        izz="0.003125"/>
+    </inertial>
+  </link>
+
+  <joint type="continuous" name="left_wheel_front_hinge">
+    <origin xyz="0.07 0.1 -0.05" rpy="0 0 0"/>
+    <child link="left_wheel_front"/>
+    <parent link="base_frame"/>
+    <axis xyz="0 1 0" rpy="0 0 0"/>
+    <limit effort="100" velocity="100"/>
+    <joint_properties damping="0.0" friction="0.0"/>
+  </joint>
+
+  <joint type="continuous" name="right_wheel_front_hinge">
+    <origin xyz="0.07 -0.1 -0.05" rpy="0 0 0"/>
+    <child link="right_wheel_front"/>
+    <parent link="base_frame"/>
+    <axis xyz="0 1 0" rpy="0 0 0"/>
+    <limit effort="100" velocity="100"/>
+    <joint_properties damping="0.0" friction="0.0"/>
+  </joint>
+
+  <joint type="continuous" name="left_wheel_back_hinge">
+    <origin xyz="-0.07 0.1 -0.05" rpy="0 0 0"/>
+    <child link="left_wheel_back"/>
+    <parent link="base_frame"/>
+    <axis xyz="0 1 0" rpy="0 0 0"/>
+    <limit effort="100" velocity="100"/>
+    <joint_properties damping="0.0" friction="0.0"/>
+  </joint>
+
+  <joint type="continuous" name="right_wheel_back_hinge">
+    <origin xyz="-0.07 -0.1 -0.05" rpy="0 0 0"/>
+    <child link="right_wheel_back"/>
+    <parent link="base_frame"/>
+    <axis xyz="0 1 0" rpy="0 0 0"/>
+    <limit effort="100" velocity="100"/>
+    <joint_properties damping="0.0" friction="0.0"/>
+  </joint>
+
+
+  <link name="camera">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.02"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.02"/>
+      </geometry>
+    </visual>
+
+    <inertial>
+      <mass value="0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
+    </inertial>
+  </link>
+
+  <joint name="camera_joint" type="fixed">
+    <axis xyz="0 1 0" />
+    <origin xyz=".13 0 0" rpy="0 0 0"/>
+    <parent link="base_frame"/>
+    <child link="camera"/>
+  </joint>
+
+
+  <joint name="lidar_joint" type="fixed">
+    <axis xyz="0 0 1" />
+    <origin xyz="0 0 0.02" rpy="0 0 0"/>
+    <parent link="base_frame"/>
+    <child link="laser_frame"/>
+  </joint>
+
+  <link name="laser_frame">
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius=".03" length=".02"/>
+      </geometry>
+    </collision>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius=".03" length=".02"/>
+      </geometry>
+    </visual>
+
+    <inertial>
+      <mass value="0.0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0" ixy="0" ixz="0" iyy="0.0" iyz="0" izz="0.0" />
+    </inertial>
+  </link>
+
+</robot>

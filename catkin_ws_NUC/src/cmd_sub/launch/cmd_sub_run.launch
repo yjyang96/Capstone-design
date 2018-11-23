@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="ip_address" default="172.16.0.1"/>
+  <arg name="port" default="6001"/>
+  <arg name="max_linear_vel" default="1"/>
+  <arg name="max_angular_vel" default="1"/>
+
+  <node pkg="cmd_sub" type="cmd_sub_node" name="cmd_sub" respawn="false" output="screen">
+
+    <param name="ip_address" value="$(arg ip_address)"/>
+    <param name="port" value="$(arg port)"/>
+    <param name="max_linear_vel" value="$(arg max_linear_vel)"/>   
+    <param name="max_angular_vel" value="$(arg max_angular_vel)"/>   
+
+  </node>
+
+</launch>
