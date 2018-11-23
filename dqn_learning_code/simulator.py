@@ -21,8 +21,8 @@ margin = 6 ## MARGIN
 ball_margin=5
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
-obstacle_base = 2/5*map_param["height"] ## 
-obstacle_length = int(2/5*map_param["width"]) ##
+obstacle_base=2/5*map_param["height"] ## 
+obstacle_length=int(2/5*map_param["width"]) ##
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
@@ -146,7 +146,7 @@ class Task:
         ran_obs = random.random()
         rand_map = random.random()
         if rand_map <= 0.333:
-            # map without walls nor obstacles (Do we need this case?)
+            # map without walls nor obstacles
             w_w = map_param["width"]
             w_h = map_param["height"]
             r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
@@ -162,11 +162,11 @@ class Task:
             else:
                 # map with walls and obstacles
                 w_w = map_param["width"] + round(random.random()*Ran_wall)
-                w_h = map_param["height"] + round(random.random()*Ran_wall + obstacle_base)
+                w_h = map_param["height"] + round(random.random()*Ran_wall) + round(obstacle_base)
                 r_x = (random.random()-0.5)*(w_w - 2*margin) # initial robot rx map base
-                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base - 2*margin) # initial robot ry map base
+                r_y = -(w_h-2*margin)/2 + random.random()*(obstacle_base-2*margin) # initial robot ry map base
                 for i in range(obstacle_length):
-                    ox = (-w_w/2) + ran_obs*(w_w - obstacle_length) + i # obstacle's x coordinate
+                    ox = (-w_w/2) + ran_obs*(w_w - obstacle_length) + i ##obstacle's x coordinate
                     obstacles_initial.append([ox, -w_h/2 + obstacle_base]) 
                     for obstacle in obstacles_initial:
                         x = obstacle[0]
@@ -175,32 +175,33 @@ class Task:
                         t_y = -np.sin(i_t)*(x - r_x) + np.cos(i_t)*(y - r_y)
                         obstacles_temp.append([t_x, t_y])
             for i in range(w_w):
-                cx = - w_w/2 + i  # This will be floating number anyway when multiply by rotation matrix (So remove round() ?)
-                cy = - w_h/2
+                cx = -round(w_w/2) + i
+                cy = -round(w_h/2)
                 walls_initial.append([cx, cy])
             for i in range(w_h):
-                cx = - w_w/2 + w_w
-                cy = - w_h/2 + i
+                cx = -round(w_w/2) + w_w
+                cy = -round(w_h/2) + i
                 walls_initial.append([cx, cy])
             for i in range(w_w):
-                cx = - w_w/2 + w_w - i
-                cy = - w_h/2 + w_h
+                cx = -round(w_w/2) + w_w - i
+                cy = -round(w_h/2) + w_h
                 walls_initial.append([cx, cy])
             for i in range(w_h):
-                cx = - w_w/2
-                cy = - w_h/2 + w_h - i
+                cx = -round(w_w/2)
+                cy = -round(w_h/2) + w_h - i
                 walls_initial.append([cx, cy])
-        
-        m_x = np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
-        m_y = -np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
-        mc_x = np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
+        m_x=np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
+        m_y=-np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
+        mc_x=np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
         mc_y = -np.sin(i_t)*(w_w/2 - r_x) + np.cos(i_t)*(w_h/2 - r_y)
-        self.robots_cen = [[m_x, m_y]]
-        self.robots_cor = [[mc_x, mc_y]]
+        self.robots_cen=[[m_x,m_y]]
+        self.robots_cor=[[mc_x,mc_y]]
         # Rotate everything to robot's frame
         #   [x'] = [ cos   sin][x - r_x]
         #   [y']   [-sin   cos][y - r_y]
-        for x, y in walls_initial:
+        for wall in walls_initial:
+            x = wall[0]
+            y = wall[1]
             f_x = np.cos(i_t)*(x - r_x) + np.sin(i_t)*(y - r_y)
             f_y = -np.sin(i_t)*(x - r_x) + np.cos(i_t)*(y - r_y)
             obstacles_temp.append([f_x, f_y])
@@ -482,11 +483,12 @@ class Task:
                 and abs(1.0*b_ball[0]) <= map_param["center"] and abs(1.0*b_ball[1]) < map_param["height"]:
                 blue_balls_inscreen.append(b_ball)
 
+        # What is this for?
         if action in range(self.action_space.size):
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
-                if action == 8:
-                    reward += 0.01
+                if action == 3:
+                    reward += 0.05
             else:
                 self.ball_inscreen_flag = 0
         #distance robots from right above corner and distance robots from center of map /
@@ -532,7 +534,7 @@ class Task:
                 print ("video saved")
 
         if action == -1:
-            return -1
+            return -1  # Penalize if not able to move (Try -2 ?)
         else:
             return reward
 
@@ -544,27 +546,27 @@ class Task:
 
         if action == 0: # forward
             del_x, del_y = 0, -1
-        elif action == 1: # forward right
-            del_x, del_y = -1, -1
-        elif action == 2: # right
+        #elif action == 1: # forward right
+        #    del_x, del_y = -1, -1
+        elif action == 1: # right
             del_x, del_y = -1, 0
-        elif action == 3: # backward right
-            del_x, del_y = -1, 1
-        elif action == 4: # backward
-            del_x, del_y = 0, 1
-        elif action == 5: # bacward left
-            del_x, del_y = 1, 1
-        elif action == 6: # left
+        #elif action == 3: # backward right
+        #    del_x, del_y = -1, 1
+        #elif action == 4: # backward
+        #   del_x, del_y = 0, 1
+        #elif action == 5: # bacward left
+        #    del_x, del_y = 1, 1
+        elif action == 2: # left
             del_x, del_y = 1, 0
-        elif action == 7: # forward left
-            del_x, del_y = 1, -1
-        elif action == 8: # turn left
+        #elif action == 7: # forward left
+            #del_x, del_y = 1, -1
+        elif action == 4: # turn left
             rot = -1
-        elif action == 9: # turn right
+        elif action == 3: # turn right
             rot = 1
-        elif action == 10:
+        elif action == 5:
             del_x, del_y, self.sorting_plate_state = 0, -1, sorting_plate_state_dic['RED']
-        elif action == 11:
+        elif action == 6:
             del_x, del_y, self.sorting_plate_state = 0, -1, sorting_plate_state_dic['BLUE']
         else:
             del_x, del_y, rot = 0, 0, 0
@@ -593,8 +595,8 @@ class Task:
         if len(self.robots_cor) > 0:
             robots_cor_temp = np.add(self.robots_cor, [del_x,del_y])        
 
-        if action == 8 or action == 9:
-            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp, robots_cen_temp, robots_cor_temp] if len(x) > 0])
+        if action == 3 or action == 4:
+            points = np.concatenate([x for x in [red_balls_temp, blue_balls_temp, obstacles_temp, robots_cen_temp,robots_cor_temp] if len(x) > 0])
             if points.size > 0:
                 points = points.reshape(-1,2)
                 theta = rot_scale*rot*np.pi/180
@@ -673,19 +675,19 @@ if __name__ == '__main__':
         elif key == ord('w'):
             action = 0
         elif key == ord('d'):
-            action = 2
-        elif key == ord('s'):
-            action = 4
+            action = 1
+        #elif key == ord('s'):
+            #action = 4
         elif key == ord('a'):
-            action = 6
+            action = 2
         elif key == ord('z'):
-            action = 8
+            action = 4
         elif key == ord('c'):
-            action = 9
+            action = 3
         elif key == ord('1'):
-            action = 10
+            action = 5
         elif key == ord('2'):
-            action = 11
+            action = 6
 
     print("shutdown")
     # cv2.destroyAllWindows()
