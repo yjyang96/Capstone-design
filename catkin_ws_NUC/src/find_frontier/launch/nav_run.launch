@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+  <!--- Run hector mapping -->
+  <include file="$(find find_frontier)/launch/hector_mapping.launch" />
+
+  <!--- Run Move Base -->
+  <node pkg="find_frontier" type="find_frontier_node" respawn="false" name="find_frontier" output="screen" />
+  <include file="$(find find_frontier)/launch/move_base.launch" />
+  <!-- sychronize time -->
+  <!-- <node name="rviz" pkg="rviz" type="rviz"/> -->
+  <rosparam> use_sim_time: false </rosparam>
+</launch>

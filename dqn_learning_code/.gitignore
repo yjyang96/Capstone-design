@@ -1,7 +1,6 @@
 data/*
-.vscode/*
 *~
 *.pyc
 *.pth
 runs/*
-__pycache__/*
+runs_bak/*

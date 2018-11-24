@@ -284,7 +284,7 @@ def dqn_learing(
             print("episodes %d" % len(episode_rewards))
             print("exploration %f" % exploration.value(t))
             sys.stdout.flush()
-            torch.save(Q, 'DQN_net1029.pt')
+            torch.save(Q, 'DQN_net1123_2.pt')
             ## 적당한 파일에 저장
 
     writer.close()

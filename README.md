@@ -1,4 +1,10 @@
-# Copy from
+#Capstone project
 
-1. This file is copied/apdated from https://github.com/berkeleydeeprlcourse/homework/tree/master/hw3
-2. This file is copied/apdated from https://github.com/leeJaeDuck/dqn_learning_code
+1. catkin_ws_NUC
+This is for ROS in NUC.
+
+2. catkin_ws_JETSON
+This is for ROS in JETSON.
+
+3. dqn_learning_code
+This is for dqn_learning.
