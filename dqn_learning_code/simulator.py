@@ -17,7 +17,7 @@ map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size 
 ## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
 Back_pixels = 6
-margin = 4 ## MARGIN 
+margin = 6 ## MARGIN 
 ball_margin=10
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
@@ -34,7 +34,7 @@ rot_scale = 20
 debug_scale = 10
 debug_scale_gray = 3
 
-max_iter = 99 # why only 99?
+max_iter = 149 # why only 99?
 
 # We also want to train the sorting plate so that it can move properly when it detect the color of the ball
 sorting_plate_state_dic = {'NULL': 0, 'RED': 1, 'BLUE': 2}
@@ -514,7 +514,7 @@ class Task:
                 dcen=self.state_dis_cen[3]-self.state_dis_cen[0]
                 dcor=self.state_dis_cor[3]-self.state_dis_cor[0]
                 if dcen*dcen < 10 and dcor*dcor < 10 :
-                    reward -=0.05
+                    reward -=0.5
                 
     
 
