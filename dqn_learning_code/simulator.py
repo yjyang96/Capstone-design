@@ -16,6 +16,7 @@ map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size 
 ## it is more nature when we use simulator resol is 2 then 10cm per 1 simulator then .. pixel 3*5.. 
 ## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
+non_detect = 6 
 Back_pixels = 6
 margin = 6 ## MARGIN 
 ball_margin=5
@@ -402,7 +403,7 @@ class Task:
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
             if self.state_blink == False or random.random() > (0.3 + 0.5*r_ball[1]/3.0/(map_param["height"]/2)):
-                if r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)):
+                if r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)) and r_ball[1] >= non_detect:
                     r_ball_x = r_ball[0]
                     r_ball_y = r_ball[1]
                     if self.state_inaccurate:
@@ -415,7 +416,7 @@ class Task:
 
         for b_ball in self.blue_balls:
             if self.state_blink == False or random.random() > (0.3 + 0.05*b_ball[1]/3.0/(map_param["height"]/2)):
-                if b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)):
+                if b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)) and b_ball[1] >= non_detect:
                     b_ball_x = b_ball[0]
                     b_ball_y = b_ball[1]
                     if self.state_inaccurate:
@@ -434,40 +435,89 @@ class Task:
 
     def get_reward(self, action):
         reward = 0
-        step_reward = 0
         red_balls_temp = []
         blue_balls_temp = []
+        pre_action = 0
+        if action in range(self.action_space.size):
+            pre_action=action
+            if pre_action== 5 or pre_action ==6:
+                reward -=1
+
         # reward for red ball
         for i, r_ball in enumerate(self.red_balls):
-            cx = round(1.0*r_ball[0]/trans_scale)
-            cy = round(1.0*r_ball[1]/trans_scale)
-            if cy < reward_region_y and cy >=0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
-                if cx == reward_region_x[1]:
-                    reward += 10
-                else:
-                    reward += 7
-                # For sorting plate
-                if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
-                    self.sorting_plate_state != sorting_plate_state_dic['RED']:
-                    reward = -5
+            if pre_action == 5 or pre_action == 6:
+                cx = round(1.0*r_ball[0]/trans_scale)
+                cy = round(1.0*r_ball[1]/trans_scale)
+                if cy>=0 and cy < reward_region_y and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+                    if cy >= reward_region_y/3  and cy < 2*reward_region_y/3:
+                        if cx == reward_region_x[1]:
+                            reward += 12
+                        else:
+                            reward += 8
+                        if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                            self.sorting_plate_state != sorting_plate_state_dic['RED']:
+                            reward += -5
+                    else:
+                        if cx == reward_region_x[1]:
+                            reward += 8
+                        else:
+                            reward += 4
+                        if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                            self.sorting_plate_state != sorting_plate_state_dic['RED']:
+                            reward += -5
+                else :
+                    red_balls_temp.append(r_ball)
             else:
-                red_balls_temp.append(r_ball)
+                cx = round(1.0*r_ball[0]/trans_scale)
+                cy = round(1.0*r_ball[1]/trans_scale)
+                if cy < reward_region_y and cy >=0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+                    if  cx == reward_region_x[1]:
+                        reward += 2.0
+                    else:
+                        reward += 1.4
+                    if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                        self.sorting_plate_state != sorting_plate_state_dic['RED']:
+                        reward += -5
+                else:
+                    red_balls_temp.append(r_ball)
         
         # reward for blue ball
         for i, b_ball in enumerate(self.blue_balls):
-            step_reward+=1
-            cx = round(1.0*b_ball[0]/trans_scale)
-            cy = round(1.0*b_ball[1]/trans_scale)
-            if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
-                if  cx == reward_region_x[1]:
-                    reward += 10
+            if pre_action == 5 or pre_action == 6:
+                cx = round(1.0*b_ball[0]/trans_scale)
+                cy = round(1.0*b_ball[1]/trans_scale)
+                if cy>=0 and cy < reward_region_y and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+                    if cy >=reward_region_y/3  and cy < 2*reward_region_y/3:
+                        if  cx == reward_region_x[1]:
+                            reward += 12
+                        else:
+                            reward += 8
+                        if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                            self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
+                            reward += -5
+                    else: 
+                        if  cx == reward_region_x[1]:
+                            reward += 8
+                        else:
+                            reward += 4
+                        if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                            self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
+                            reward += -5
                 else:
-                    reward += 7
-                if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
-                    self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
-                    reward = -5
+                    blue_balls_temp.append(b_ball)
             else:
-                blue_balls_temp.append(b_ball)
+                cx = round(1.0*b_ball[0]/trans_scale)
+                cy = round(1.0*b_ball[1]/trans_scale)
+                if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
+                    if  cx == reward_region_x[1]:
+                        reward += 2
+                    else:
+                        reward += 1.4
+                    if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
+                        self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
+                        reward += -5
+                else:
+                    blue_balls_temp.append(b_ball)
 
         self.red_balls = red_balls_temp
         self.blue_balls = blue_balls_temp
@@ -567,9 +617,9 @@ class Task:
         elif action == 3: # turn right
             rot = 1
         elif action == 5:
-            del_x, del_y, self.sorting_plate_state = 0, -1, sorting_plate_state_dic['RED']
+            del_x, del_y, self.sorting_plate_state = 0, -3, sorting_plate_state_dic['RED']
         elif action == 6:
-            del_x, del_y, self.sorting_plate_state = 0, -1, sorting_plate_state_dic['BLUE']
+            del_x, del_y, self.sorting_plate_state = 0, -3, sorting_plate_state_dic['BLUE']
         else:
             del_x, del_y, rot = 0, 0, 0
 
