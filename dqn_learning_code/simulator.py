@@ -27,7 +27,7 @@ obstacle_length=int(2/5*map_param["width"]) ##
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
-reward_region_x = [-1,0,1]
+reward_region_x = [-1,0,1,-2,2]
 reward_region_y = 3
 trans_scale = int(simulator["resol"]/map_param["resol"])
 rot_scale = 20
@@ -312,18 +312,29 @@ class Task:
                      1)
         # Center of the robot
         cv2.rectangle(frame_debug,
-                      (simulator["center"]*debug_scale - 1, (simulator["height"] - Back_pixels)*debug_scale + 1),
+                      (simulator["center"]*debug_scale, (simulator["height"] - Back_pixels)*debug_scale + 1),
                       ((simulator["center"] + 1)*debug_scale, (simulator["height"] - (Back_pixels - 1))*debug_scale - 1),
                       (255, 0, 0) if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else (0, 0, 255),
                       -1)
+
         # Boundary of the robot
+        cv2.rectangle(frame_debug,
+                      ((simulator["center"] - 2)*debug_scale - 1,
+                       (simulator["height"] - (Back_pixels + 2))*debug_scale + 1),
+                      ((simulator["center"] + 3)*debug_scale,
+                       (simulator["height"] - (Back_pixels - 3))*debug_scale - 1),
+                      (0, 0, 255),
+                      2)
+        # roller of the robot
         cv2.rectangle(frame_debug,
                       ((simulator["center"] - 1)*debug_scale - 1,
                        (simulator["height"] - (Back_pixels + 2))*debug_scale + 1),
                       ((simulator["center"] + 2)*debug_scale,
-                       (simulator["height"] - (Back_pixels - 3))*debug_scale - 1),
-                      (0, 0, 255),
+                       (simulator["height"] - (Back_pixels + 1))*debug_scale - 1),
+                      (0, 255, 0),
                       2)
+
+
         # Right line view angle
         cv2.line(frame_debug,
                  ((simulator["center"] + ball_blind_bias)*debug_scale, (simulator["height"] - Back_pixels)*debug_scale - 1),
@@ -355,7 +366,7 @@ class Task:
     def draw_state_gray(self):
         #gray_color = {"red_ball":255, "blue_ball":220, "wall":100, "robot":200, "robot_padding":150}
         # 다음 교육에는 sorting plate 상태에 따라 gray에도 표시해줌
-        gray_color = {"red_ball":255, "blue_ball":50, "wall":100, "robot_red":200, "robot_blue":125, "robot_padding":150}
+        gray_color = {"red_ball":255, "blue_ball":50, "wall":100, "robot_red":200, "robot_blue":125, "robot_padding":150,  "robot_roller":175}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
 
         for i in range(simulator["width"]):
@@ -379,9 +390,10 @@ class Task:
                                   gray_color["blue_ball"],
                                   -1)
 
+        ### gray color of the bots
         cv2.rectangle(self.frame_gray,
-                      ((simulator["center"] - 1)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray + 1),
-                      ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1),
+                      ((simulator["center"] - 2)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray + 0),
+                      ((simulator["center"] + 3)*debug_scale_gray, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1),
                       gray_color["robot_padding"],
                       -1)
         #cv2.rectangle(self.frame_gray,
@@ -391,6 +403,12 @@ class Task:
         #              -1)
         cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
                      ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
+        ### gray color of the rollers
+        cv2.rectangle(self.frame_gray,
+                      ((simulator["center"] - 1)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray ),
+                      ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels + 1))*debug_scale_gray ),
+                      gray_color["robot_roller"],
+                      -1)
 
         return self.frame_gray
 
@@ -452,16 +470,20 @@ class Task:
                     if cy >= reward_region_y/3  and cy < 2*reward_region_y/3:
                         if cx == reward_region_x[1]:
                             reward += 12
-                        else:
+                        elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                             reward += 8
+                        else:
+                            reward += -2
                         if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['RED']:
                             reward += -5
                     else:
                         if cx == reward_region_x[1]:
                             reward += 8
-                        else:
+                        elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                             reward += 4
+                        else: 
+                            reward += -2
                         if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['RED']:
                             reward += -5
@@ -473,8 +495,10 @@ class Task:
                 if cy < reward_region_y and cy >=0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                     if  cx == reward_region_x[1]:
                         reward += 2.0
-                    else:
+                    elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                         reward += 1.4
+                    else: 
+                        reward += -2
                     if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                         self.sorting_plate_state != sorting_plate_state_dic['RED']:
                         reward += -5
@@ -488,18 +512,22 @@ class Task:
                 cy = round(1.0*b_ball[1]/trans_scale)
                 if cy>=0 and cy < reward_region_y and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                     if cy >=reward_region_y/3  and cy < 2*reward_region_y/3:
-                        if  cx == reward_region_x[1]:
+                        if cx == reward_region_x[1]:
                             reward += 12
-                        else:
+                        elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                             reward += 8
+                        else:
+                            reward += -2
                         if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
                             reward += -5
                     else: 
-                        if  cx == reward_region_x[1]:
+                        if cx == reward_region_x[1]:
                             reward += 8
-                        else:
+                        elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                             reward += 4
+                        else: 
+                            reward += -2
                         if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
                             reward += -5
@@ -511,8 +539,10 @@ class Task:
                 if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                     if  cx == reward_region_x[1]:
                         reward += 2
-                    else:
+                    elif cx == reward_region_x[0] or cx == reward_region_x[2]:
                         reward += 1.4
+                    else: 
+                        reward += -2
                     if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                         self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
                         reward += -5
@@ -604,8 +634,8 @@ class Task:
             del_x, del_y = -1, 0
         #elif action == 3: # backward right
         #    del_x, del_y = -1, 1
-        #elif action == 4: # backward
-        #   del_x, del_y = 0, 1
+        elif action == 7: # backward
+            del_x, del_y = 0, 1
         #elif action == 5: # bacward left
         #    del_x, del_y = 1, 1
         elif action == 2: # left
@@ -668,7 +698,7 @@ class Task:
                 robots_cor_temp=points[len(self.red_balls)+len(self.blue_balls)+len(self.obstacles)+len(self.robots_cen):]
         enable_move = True
         for obstacle in obstacles_temp:
-            if abs(1.0*obstacle[0]) < 4.0*trans_scale/3 and abs(1.0*obstacle[1]) < 8.0*trans_scale/3:
+            if abs(1.0*obstacle[0]) < 8.0*trans_scale/3 and abs(1.0*obstacle[1]) < 8.0*trans_scale/3:
                 enable_move = False
 
 
@@ -728,8 +758,8 @@ if __name__ == '__main__':
             action = 0
         elif key == ord('d'):
             action = 1
-        #elif key == ord('s'):
-            #action = 4
+        elif key == ord('s'):
+            action = 7
         elif key == ord('a'):
             action = 2
         elif key == ord('z'):
