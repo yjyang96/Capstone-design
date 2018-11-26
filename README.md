@@ -16,3 +16,10 @@ This is for dqn_learning.
 ```
 /opt/ros/kinetic/include
 ```
+
+# To do list
+
+1. Improve DQN training.
+2. Prepare the skeleton code for the whole control algorithm. (When to run find_frontier, when to run DQN, when to dispose the ball, etc.)
+3. Prepare the code for converting DQN action to the robot's command.
+4. ...
