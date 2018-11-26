@@ -162,9 +162,13 @@ void msgCallback_for_picking(const std_msgs::Int8::ConstPtr& action)
 		case 5: // forward and sorting to red
 			send_data.vy = 1;
 			send_data.state = SORT_LEFT;
+			break;
 		case 6: // forward and sorting to blue
 			send_data.vy = 1;
 			send_data.state = SORT_RIGHT;
+			break;
+		default:
+			break;
 	}
 }
 
@@ -176,6 +180,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle nh;
 
     action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
+	action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
 	curr_state = FIND_FRONTIER;
 
 	// socket open start

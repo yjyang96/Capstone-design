@@ -3,8 +3,15 @@ import torch.nn.functional as F
 import numpy as np
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=10):
-
+    def __init__(self, in_channels=4, num_actions=7):
+        """
+        Initialize a deep Q-learning network as described in
+        https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf
+        Arguments:
+            in_channels: number of channel of input.
+                i.e The number of most recent frames stacked together as describe in the paper
+            num_actions: number of action-value to output, one-to-one correspondence to action in game.
+        """
         super(DQN, self).__init__()
         self.conv1 = nn.Conv2d(in_channels, 32, kernel_size=8, stride=4)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)

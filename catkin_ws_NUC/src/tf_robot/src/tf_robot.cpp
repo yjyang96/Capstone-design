@@ -29,6 +29,7 @@ int main(int argc, char** argv){
 	tf::Transform transform;  //define transform
 	ros::Subscriber slam_out_pose = nh.subscribe("/slam_out_pose", 2, msgCallback);
 
+	// with hector mapping
 	transform.setOrigin( tf::Vector3(0, 0, 0) );  //set the translation related variables
 	q.setRPY(0, 0, 0);  //set the rotation related variables here
 	transform.setRotation(q);
@@ -36,6 +37,12 @@ int main(int argc, char** argv){
 	
 
 	while(ros::ok()){
+		
+		//without hector mapping for debug
+		// transform.setOrigin( tf::Vector3(0, 0, 0) );  //set the translation related variables
+		// q.setRPY(0, 0, 0);  //set the rotation related variables here
+		// transform.setRotation(q);
+		// br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/world", "/base_frame"));  //publish tf. parent link is "world" and child link is "camera_link"
 		
 		// for camera axis
 		// ---------x------>

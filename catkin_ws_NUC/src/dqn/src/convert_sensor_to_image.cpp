@@ -27,6 +27,9 @@
 
 #include "opencv2/opencv.hpp"
 
+
+#include <std_msgs/Int8.h>
+
 //using namespace std;
 
 // Map settings -------------------------------------------------------------------------------
@@ -36,40 +39,48 @@ int MAP_HEIGHT = 31;
 
 int scale_up_size = 3;
 
-int ball_color = 255;
+int red_ball_color = 255;
+int blue_ball_color = 50;
 int wall_color = 100;
-int robot_color = 200;
+int robot_red = 200;
+int robot_blue = 125;
 int robot_padding_color = 150;
+int robot_roller_color = 175;
 
 // Robot parameters ----------------------------------------------------------------------------
 // In map scale
 //
 //              COLLECT_X
 //              |       |
-//       _______________       ___
-//      |    collect    |
-//      |    region     |   COLLECT_Y        Not finished yet
-//      |_______________|      ___
-//      +---------------+
-//      |               |
-//      |               |
-//      |               |
-//      |       +       |      ---           ---
-//      |               |                     ^
-//      |               |      R_Y            |
-//      |               |                     |
-//      +---------------+      ---            |
-//              |  R_X  |               BACK_DISTANCE  
-//                                            |
-//                                            |
-//                                            |
-//                                            v
-//                                           ---
+//  +----+---------------+----+      ---
+//  |    |    collect    |    |
+//  |    |    region     |    |   COLLECT_Y        Not finished yet
+//  |    |               |    |      
+//  |    +---------------+    |      ---
+//  |            <-> ORI_Y    |
+//  |        +-----+  ^       |
+//  |        |     |  | ORI_X |
+//  |        |  +  |  v       |      ---           ---
+//  |        +-----+          |                     ^
+//  |                         |      R_Y            |
+//  |                         |                     |
+//  +-------------------------+      ---            |
+//              |     R_X     |               BACK_DISTANCE  
+//                                                  |
+//                                                  |
+//                                                  |
+//                                                  v
+//                                                 ---
 
 // Add by myself
 int BACK_DISTANCE = 0.6/MAP_RESOL;
-int R_X = 0.15/MAP_RESOL;
+int R_X = 0.25/MAP_RESOL;
 int R_Y = 0.25/MAP_RESOL;
+int C_X = 0.15/MAP_RESOL;
+int C_Y = 0.10/MAP_RESOL;
+// i want to make origin point, but int make it 0
+// int O_X = 0.05/MAP_RESOL;
+// int O_Y = 0.05/MAP_RESOL;
 
 // --------------------------------------------------------------------------------------------
 
@@ -99,7 +110,6 @@ float ball_Y[20];
 #define DOWN_BLUE   2
 #define DOWN_RED    3
 
-int is_new_data[6] = {-1, -1, -1, -1, -1, -1};
 std::vector<std::array<float, 3>> balls_pos[4];
 
 class msgCallback_balls {
@@ -115,7 +125,6 @@ class msgCallback_balls {
         void get_pos(const core_msgs::ball_position& msg) {
             // std::cout<<camera_num<<color<<"what\n";
             balls_pos[2*camera_num + color].clear();
-            is_new_data[2*camera_num + color] = msg.size;
             for (int i=0; i<msg.size; i++) {
                 std::array<float, 3> pos;
                 pos[0] = msg.img_x[i];
@@ -126,12 +135,6 @@ class msgCallback_balls {
         }
 };
 
-void is_new_data_init(){
-	for(int i=0;i<6;i++){
-		is_new_data[i] = -1;
-	}
-	//is_new_coeffi = false;
-}
 // --------------------------------------------------------------------------------------------
 
 
@@ -179,6 +182,23 @@ bool check_point_range(int cx, int cy)
 }
 
 
+// --------------------------------------------------------------------------------------------
+int sort_state = RED;
+
+void action_Callback(const std_msgs::Int8::ConstPtr& action) 
+{
+	switch(action->data){
+		case 5: // forward and sorting to red
+			sort_state = RED;
+            break;
+		case 6: // forward and sorting to blue
+			sort_state = BLUE;
+            break;
+        default:
+            break;
+	}
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "covert_sensor_to_image");
@@ -198,6 +218,10 @@ int main(int argc, char **argv)
 	ros::Subscriber red_sub = n.subscribe("/red_tf", 1, &msgCallback_balls::get_pos, &upper_red);
 	ros::Subscriber blue_sub2 = n.subscribe("/blue_tf2", 1, &msgCallback_balls::get_pos, &down_blue);
 	ros::Subscriber red_sub2 = n.subscribe("/red_tf2", 1, &msgCallback_balls::get_pos, &down_red);
+
+    // ------------------------------------------------------------------------------------
+
+    ros::Subscriber action_sub = n.subscribe("/action/int8", 1, action_Callback);
 
     while (ros::ok()) {
         cv::Mat map = cv::Mat::zeros(MAP_WIDTH*scale_up_size, MAP_HEIGHT*scale_up_size, CV_8UC1); //93*93 size image
@@ -225,26 +249,26 @@ int main(int argc, char **argv)
         // Drawing ball (Right now, use only the upper camera)
         for (int i=0; i<balls_pos[UP_BLUE].size(); i++)
         {
-            cx = MAP_WIDTH/2 + (int)(balls_pos[UP_BLUE][i][0]/MAP_RESOL);
-            cy = MAP_HEIGHT - (int)(balls_pos[UP_BLUE][i][1]/MAP_RESOL);
+            cx = MAP_WIDTH/2 - (int)(balls_pos[UP_BLUE][i][1]/MAP_RESOL);
+            cy = MAP_HEIGHT - (int)(balls_pos[UP_BLUE][i][0]/MAP_RESOL);
 
             if(check_point_range(cx,cy)){
                 cv::rectangle(map,
                               cv::Point(cx*scale_up_size, (cy - BACK_DISTANCE)*scale_up_size),
                               cv::Point(cx*scale_up_size+2, (cy - BACK_DISTANCE)*scale_up_size+2),
-                              cv::Scalar(ball_color), -1);
+                              cv::Scalar(blue_ball_color), -1);
             }
         }
         for (int i=0; i<balls_pos[UP_RED].size(); i++)
         {
-            cx = MAP_WIDTH/2 + (int)(balls_pos[UP_RED][i][0]/MAP_RESOL);
-            cy = MAP_HEIGHT - (int)(balls_pos[UP_RED][i][1]/MAP_RESOL);
+            cx = MAP_WIDTH/2 - (int)(balls_pos[UP_RED][i][1]/MAP_RESOL);
+            cy = MAP_HEIGHT - (int)(balls_pos[UP_RED][i][0]/MAP_RESOL);
 
             if(check_point_range(cx,cy)){
                 cv::rectangle(map,
                               cv::Point(cx*scale_up_size, (cy - BACK_DISTANCE)*scale_up_size),
                               cv::Point(cx*scale_up_size+2, (cy - BACK_DISTANCE)*scale_up_size+2),
-                              cv::Scalar(ball_color), -1);
+                              cv::Scalar(red_ball_color), -1);
             }
         }
 
@@ -260,9 +284,32 @@ int main(int argc, char **argv)
         // Boundary
         cv::rectangle(map,
                       cv::Point(((MAP_WIDTH/2) - R_X)*scale_up_size - 1, (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size + 1),
-                      cv::Point(((MAP_WIDTH/2) + R_Y)*scale_up_size, (MAP_HEIGHT - (BACK_DISTANCE - R_Y))*scale_up_size - 1),
-                      cv::Scalar(robot_color),
+                      cv::Point(((MAP_WIDTH/2) + R_X)*scale_up_size, (MAP_HEIGHT - (BACK_DISTANCE - R_Y))*scale_up_size - 1),
+                      cv::Scalar(robot_padding_color),
                       -1);
+
+        // Roller
+        cv::rectangle(map,
+                      cv::Point(((MAP_WIDTH/2) - C_X)*scale_up_size - 1, (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size + 1),
+                      cv::Point(((MAP_WIDTH/2) + C_X)*scale_up_size, (MAP_HEIGHT - (BACK_DISTANCE + R_Y - C_Y))*scale_up_size - 1),
+                      cv::Scalar(robot_roller_color),
+                      -1);
+
+        // Centor sort plate state
+        if(sort_state == RED){
+            cv::rectangle(map,
+                      cv::Point((MAP_WIDTH/2)*scale_up_size - 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size + 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 3),
+                      cv::Scalar(robot_red),
+                      -1);
+        }
+        else{
+            cv::rectangle(map,
+                      cv::Point((MAP_WIDTH/2)*scale_up_size - 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size + 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 3),
+                      cv::Scalar(robot_blue),
+                      -1);
+        }
 
         // if it is posible to use cvbrideg, you can use below
         // msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", map).toImageMsg();
