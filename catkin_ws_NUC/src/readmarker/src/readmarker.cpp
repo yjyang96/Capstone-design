@@ -234,46 +234,50 @@ int main(int argc, char** argv)
   }
 
   tcp_msg tcp_message;
+
+  tcp_message.data[0] = 0;
+  tcp_message.data[1] = 0;
+  tcp_message.data[2] = 0;
+  tcp_message.data[3] = 0;
+  tcp_message.state = 0;
   while(ros::ok()){
-  	tcp_msg tcp_message;
-  	tcp_message.data[0] = motor_pos;
-  	tcp_message.data[1] = 0;
-  	tcp_message.data[2] = 0;
-  	tcp_message.data[3] = 0;
-  	tcp_message.state = 2;
   	switch((int)motor_pos){
   		case 1:
-  		write(c_socket, &tcp_message, sizeof(tcp_message));
-		read(c_socket, &ready_flag, sizeof(bool));
-		tcp_message.data[0] = 0;
-		motor_pos = 0;
-		std::cout<<"dog1\n";
-		ros::Duration(5).sleep();
-		write(c_socket, &tcp_message, sizeof(tcp_message));
-		read(c_socket, &ready_flag, sizeof(bool));
-		std::cout<<"dog2\n";
-		break;
-		case -1:
-		write(c_socket, &tcp_message, sizeof(tcp_message));
-		read(c_socket, &ready_flag, sizeof(bool));		
-		std::cout<<"cat1\n";
-		ros::Duration(5).sleep();
-		tcp_message.data[0] = 0;
-		motor_pos = 0;
-		write(c_socket, &tcp_message, sizeof(tcp_message));
-		read(c_socket, &ready_flag, sizeof(bool));
-		std::cout<<"cat2\n";
-		break;
-		default:
-		write(c_socket, &tcp_message, sizeof(tcp_message));
-		read(c_socket, &ready_flag, sizeof(bool));
-		break;
+        tcp_message.state = 3;  
+        write(c_socket, &tcp_message, sizeof(tcp_message));
+        read(c_socket, &ready_flag, sizeof(bool));
+        motor_pos = 0;
+        std::cout<<"dog1\n";
+        // ros::Duration(5).sleep();
+        write(c_socket, &tcp_message, sizeof(tcp_message));
+        read(c_socket, &ready_flag, sizeof(bool));
+        std::cout<<"dog2\n";
+        break;
+      case -1:
+        tcp_message.state = 5;  
+        write(c_socket, &tcp_message, sizeof(tcp_message));
+        read(c_socket, &ready_flag, sizeof(bool));		
+        std::cout<<"cat1\n";
+        // ros::Duration(5).sleep();
+        motor_pos = 0;
+        write(c_socket, &tcp_message, sizeof(tcp_message));
+        read(c_socket, &ready_flag, sizeof(bool));
+        std::cout<<"cat2\n";
+        break;
+      default:
+        tcp_message.state = 4;
+        write(c_socket, &tcp_message, sizeof(tcp_message));
+        read(c_socket, &ready_flag, sizeof(bool));
+        break;
   	}
     ros::Duration(0.07).sleep();
     ros::spinOnce();
   }
   tcp_message.data[0] = 0;
-  tcp_message.state = 3;
+  tcp_message.data[1] = 0;
+  tcp_message.data[2] = 0;
+  tcp_message.data[3] = 0;
+  tcp_message.state = 6;
   write(c_socket, &tcp_message, sizeof(tcp_message));
   close(c_socket);
 

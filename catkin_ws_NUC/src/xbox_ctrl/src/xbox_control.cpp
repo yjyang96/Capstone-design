@@ -44,6 +44,8 @@ int main(int argc, char **argv) {
 	ros::start();
 	float vx, vy, wz;
 	float motor_max;
+	int sort_state = 1;
+	int dump_state = 3;
 
 	GamepadInit();
 
@@ -67,6 +69,11 @@ int main(int argc, char **argv) {
 	bool button[2];
 	float motor[4];
 	float motor_abs[4];
+
+	for(int i = 0; i < 4; i++){
+		tcp_message.data[i] = motor[i];
+	}
+	tcp_message.state = 0;
 
 	while (ros::ok()) {
 		bool read_flag;
@@ -104,8 +111,8 @@ int main(int argc, char **argv) {
 		motor[3] *= 60;
 
 		//for motor recalibration
-		motor[0] = -motor[0];
-		motor[1] = -motor[1];
+		motor[2] = -motor[2];
+		motor[3] = -motor[3];
 
 		for(int i = 0; i < 4 ; i++){
 			motor_abs[i] = motor[i] > 0 ? motor[i] : -motor[i];
@@ -123,45 +130,25 @@ int main(int argc, char **argv) {
 				motor[i] *= 60;
 			}
 		}
+
+		for(int i = 0; i < 4; i++){
+			tcp_message.data[i] = motor[i];
+		}
 		
 		if(button[0]){
-			tcp_message.state=1;
-			for(int i = 0; i < 4; i++){
-				tcp_message.data[i] = 0;
-			}
+			sort_state = sort_state == 2 ? 1 : sort_state + 1;
+			tcp_message.state = sort_state;
 		}
 		else if(button[1]){
-			tcp_message.state=2;
-			for(int i = 0; i < 4; i++){
-				tcp_message.data[i] = 0;
-			}
-		}
-		else{
-			tcp_message.state=0;
-			for(int i = 0; i < 4; i++){
-				tcp_message.data[i] = motor[i];
-			}
+			dump_state = dump_state == 5 ? 3 : dump_state + 1;
+			tcp_message.state = dump_state;
 		}
 
 		write(c_socket, &tcp_message, sizeof(tcp_message));
-		if(tcp_message.state==1){
-			bool pickup_flag;
-			read(c_socket, &pickup_flag, sizeof(bool));
-			// cout<<"flag:"<<pickup_flag<<"\n";
-			if(!pickup_flag){
-				cout<<"error in pickup"<<"\n";
-				break;
-			}	
-		}
-		else if(tcp_message.state==2){
-			cout<<"string control"<<"\n";
-		}
-		// cout<<"size:"<<sizeof(tcp_message)<<"\n";
-		// cout<<tcp_message.data[0]<<"   "<<tcp_message.data[1]<<"   "<<tcp_message.data[2]<<"   "<<tcp_message.data[3]<<"\n";
-		// cout<<"button"<<tcp_message.state<<"\n";
+
 		ros::Duration(0.05).sleep();
 	}
-	tcp_message.state = 3;
+	tcp_message.state = 6;
 	for(int i = 0; i < 4; i++){
 		tcp_message.data[i] = 0;
 	}
