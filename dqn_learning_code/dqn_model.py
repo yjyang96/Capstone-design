@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import numpy as np
 
 class DQN(nn.Module):
-    def __init__(self, in_channels=4, num_actions=8):
+    def __init__(self, in_channels=4, num_actions=7):
         """
         Initialize a deep Q-learning network as described in
         https://storage.googleapis.com/deepmind-data/assets/papers/DeepMindNature14236Paper.pdf

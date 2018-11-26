@@ -72,7 +72,7 @@ class Task:
         self.state_inaccurate = state_inaccurate
         # DQN parameters
         self.observation_space = self.frame_gray.copy()
-        self.action_space = np.array(range(12))
+        self.action_space = np.array(range(7))
         # ROS
         # rospack = rospkg.RosPack()
         # root = rospack.get_path('tt_rl_motion_planner')
@@ -634,8 +634,8 @@ class Task:
             del_x, del_y = -1, 0
         #elif action == 3: # backward right
         #    del_x, del_y = -1, 1
-        elif action == 7: # backward
-            del_x, del_y = 0, 1
+        #elif action == 7: # backward
+            #del_x, del_y = 0, 1
         #elif action == 5: # bacward left
         #    del_x, del_y = 1, 1
         elif action == 2: # left
@@ -758,8 +758,8 @@ if __name__ == '__main__':
             action = 0
         elif key == ord('d'):
             action = 1
-        elif key == ord('s'):
-            action = 7
+        #elif key == ord('s'):
+            #action = 7
         elif key == ord('a'):
             action = 2
         elif key == ord('z'):
