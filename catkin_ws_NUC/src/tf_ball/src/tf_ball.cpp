@@ -12,13 +12,10 @@
 #define DOWN 1
 #define BLUE 0
 #define RED 1
-#define GREEN 2
 #define U_B 0
 #define U_R 1
-#define U_G 2
 #define D_B 3
 #define D_R 4
-#define D_G 5
 
 ros::Publisher tf_pub[6];
 ros::Publisher scan_pub;
@@ -97,7 +94,7 @@ void msgCallback_lidar::transform_lidar(const sensor_msgs::LaserScan::ConstPtr& 
 
 	tf::StampedTransform transform;
 	try{
-		listener->lookupTransform("/robot_base", "/laser_frame", ros::Time(0), transform);
+		listener->lookupTransform("/base_frame", "/laser_frame", ros::Time(0), transform);
     }
     catch (tf::TransformException &ex) {
     	std::cout<<"transform error2\n";
@@ -105,7 +102,7 @@ void msgCallback_lidar::transform_lidar(const sensor_msgs::LaserScan::ConstPtr& 
     }
 
 
-    cloud.header.frame_id = "/robot_base";
+    cloud.header.frame_id = "/base_frame";
     for(int i=0;i<cloud.points.size();i++){
 		tf::Vector3 output; //declare tf::Vector3. this output will have values of transformed position of ball1
 		tf::Vector3 input(cloud.points[i].x, cloud.points[i].y, cloud.points[i].z); //declare tf::Vector3. this input will have values of position of ball1 before trnasformation
@@ -128,22 +125,16 @@ int main(int argc, char **argv)
 	
 	tf_pub[U_B] = nh.advertise<core_msgs::ball_position>("/blue_tf", 1); //setting publisher
 	tf_pub[U_R] = nh.advertise<core_msgs::ball_position>("/red_tf", 1);
-	tf_pub[U_G] = nh.advertise<core_msgs::ball_position>("/green_tf", 1);
 	tf_pub[D_B] = nh.advertise<core_msgs::ball_position>("/blue_tf2", 1); //setting publisher
 	tf_pub[D_R] = nh.advertise<core_msgs::ball_position>("/red_tf2", 1);
-	tf_pub[D_G] = nh.advertise<core_msgs::ball_position>("/green_tf2", 1);
 	msgCallback_balls upper_blue(UP, BLUE, &listener);
 	msgCallback_balls upper_red(UP,RED ,&listener);
-	msgCallback_balls upper_green(UP,GREEN, &listener);
 	msgCallback_balls down_blue(DOWN,BLUE, &listener);
 	msgCallback_balls down_red(DOWN,RED, &listener);
-	msgCallback_balls down_green(DOWN,GREEN, &listener);
 	ros::Subscriber blue_sub = nh.subscribe("/blue_markers", 1, &msgCallback_balls::transform_ball, &upper_blue);
 	ros::Subscriber red_sub = nh.subscribe("/red_markers", 1, &msgCallback_balls::transform_ball, &upper_red);
-	ros::Subscriber green_sub = nh.subscribe("/green_markers", 1, &msgCallback_balls::transform_ball, &upper_green);
 	ros::Subscriber blue_sub2 = nh.subscribe("/blue_markers2", 1, &msgCallback_balls::transform_ball, &down_blue);
 	ros::Subscriber red_sub2 = nh.subscribe("/red_markers2", 1, &msgCallback_balls::transform_ball, &down_red);
-	ros::Subscriber green_sub2 = nh.subscribe("/green_markers2", 1, &msgCallback_balls::transform_ball, &down_green);
 
 	scan_pub = nh.advertise<sensor_msgs::PointCloud>("/scan_points", 1);
 	msgCallback_lidar lidar(&listener, &projector);

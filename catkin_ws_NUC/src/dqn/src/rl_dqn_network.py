@@ -26,10 +26,9 @@ path = root+"/src/nuelnetwork/DQN_net0729.pt"
 
 if torch.cuda.is_available():
     test_model = torch.load(path)
-    print('DQN_net0729.pt was loaded')
 else:
     test_model=torch.load(path, map_location='cpu')
-    print('DQN_net0729.pt was loaded')
+print('DQN_net0729.pt was loaded')
 
 
 input_image = np.zeros((input_number,img_rows,img_cols), np.uint8)

@@ -183,10 +183,9 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "covert_sensor_to_image");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 1000, lidar_Callback);
+    ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 1, lidar_Callback);
     //ros::Subscriber sub1 = n.subscribe<core_msgs::ball_position>("/position", 1000, camera_Callback);
-    ros::Publisher pub;
-    pub = n.advertise<sensor_msgs::CompressedImage>("RL_state/image", 1000); //setting publisher
+    ros::Publisher pub = n.advertise<sensor_msgs::CompressedImage>("RL_state/image", 1); //setting publisher
     sensor_msgs::CompressedImage msg;
 
     // ----------------------------------------------------------------------------------
@@ -201,7 +200,7 @@ int main(int argc, char **argv)
 	ros::Subscriber red_sub2 = n.subscribe("/red_tf2", 1, &msgCallback_balls::get_pos, &down_red);
 
     while (ros::ok()) {
-        cv::Mat map = cv::Mat::zeros(MAP_WIDTH*scale_up_size, MAP_HEIGHT*scale_up_size, CV_8UC1); //91*91 size image
+        cv::Mat map = cv::Mat::zeros(MAP_WIDTH*scale_up_size, MAP_HEIGHT*scale_up_size, CV_8UC1); //93*93 size image
 
         // Drawing Lidar data
         float obstacle_x, obstacle_y;

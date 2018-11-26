@@ -36,22 +36,31 @@ int main(int argc, char** argv){
 	
 
 	while(ros::ok()){
-		/*
-		//camera1
-		transform.setOrigin( tf::Vector3(0, 0.37728, 0.41405) );  //set the translation related variables 20
-		q.setRPY(-M_PI_2 -0.30, 0, 0);  //set the rotation related variables here
+		
+		// for camera axis
+		// ---------x------>
+		// |
+		// |       X X
+		// z        y
+		// |       X X
+		// |
+		// |
+		// v
+
+		// camera1
+		transform.setOrigin( tf::Vector3(0.140, 0, 0.270) );  //set the translation related variables 20
+		q.setRPY(-M_PI_2 -0.30, 0, -M_PI_2 );  //set the rotation related variables here
 		transform.setRotation(q);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/base_frame", "/camera_link1"));  //publish tf. parent link is "world" and child link is "camera_link"
 
 		//camera2
-		transform.setOrigin( tf::Vector3(0, 0.047, 0.098) );  //set the translation related variables
-		q.setRPY(-M_PI_2+0.1, M_PI, 0);  //set the rotation related variables here 5
+		transform.setOrigin( tf::Vector3(-0.150, 0, 0.200) );  //set the translation related variables
+		q.setRPY(-M_PI_2, 0, M_PI_2);  //set the rotation related variables here 5
 		transform.setRotation(q);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/base_frame", "/camera_link2"));  //publish tf. parent link is "world" and child link is "camera_link"
-		*/
 
 		//laser
-		transform.setOrigin( tf::Vector3(-0.20, -0.073, 0.475) );  //set the translation related variables
+		transform.setOrigin( tf::Vector3(-0.040, -0.0475, 0.335) );  //set the translation related variables
 		q.setRPY(0, 0, 0);  //set the rotation related variables here 5
 		transform.setRotation(q);
 		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/base_frame", "/laser_frame"));  //publish tf. parent link is "world" and child link is "camera_link"
