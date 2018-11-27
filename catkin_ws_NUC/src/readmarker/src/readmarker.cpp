@@ -102,8 +102,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Fu
 
   Mat outputImage;                                                          //Matrix where the detected markers will be shown in inputImage
   inputImage.copyTo(outputImage);                                           //Copy the inputImage to outputImage. The markers will be drawn afterwards
-  image_1 = Mat(256,256, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
-  image_2 = Mat(256,256, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
+  image_1 = Mat(224,224, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
+  image_2 = Mat(224,224, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
 
   if (markerIds.size() > 0)                                                 //If there is any marker detected
   {

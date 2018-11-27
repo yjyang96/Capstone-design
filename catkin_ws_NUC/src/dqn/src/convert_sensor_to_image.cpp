@@ -234,8 +234,8 @@ int main(int argc, char **argv)
             obstacle_x = lidar_distance[i]*cos(lidar_degree[i]);
             obstacle_y = lidar_distance[i]*sin(lidar_degree[i]);
 
-            cx = MAP_WIDTH/2 + (int)(obstacle_y/MAP_RESOL);
-            cy = MAP_HEIGHT + (int)(obstacle_x/MAP_RESOL);
+            cx = MAP_WIDTH/2 - (int)(obstacle_y/MAP_RESOL);
+            cy = MAP_HEIGHT - (int)(obstacle_x/MAP_RESOL);
 
             if (check_point_range(cx,cy)){
                 cv::rectangle(map,
@@ -331,10 +331,11 @@ int main(int argc, char **argv)
 
         pub.publish(msg);
 
-        cv::imshow("Frame", map);
-        if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
-            return 0;
-        }
+        // cv::imshow("Frame", map);
+        // if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
+        //     return 0;
+        // }
+        ros::Duration(0.7).sleep();
         ros::spinOnce();
     }
 

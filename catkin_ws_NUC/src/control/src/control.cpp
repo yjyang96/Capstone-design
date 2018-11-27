@@ -76,6 +76,10 @@ void sendRioMessage(float vx, float vy, float wz, Rio_State rio_state){
 	motor[2] *= 30;
 	motor[3] *= 30;
 
+	for(int i = 0; i < 4; i++){
+		motor[i] /= 6;
+	}
+
 	//for motor recalibration
 	motor[2] = -motor[2];
 	motor[3] = -motor[3];
@@ -107,6 +111,7 @@ void sendRioMessage(float vx, float vy, float wz, Rio_State rio_state){
 
 	write(c_socket, &tcp_message, sizeof(tcp_message));
 	ready_flag = false;
+	// ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
 
 }
 
@@ -160,16 +165,20 @@ void msgCallback_for_picking(const std_msgs::Int8::ConstPtr& action)
 			send_data.wz = -1;
 			break;
 		case 5: // forward and sorting to red
-			send_data.vy = 1;
-			send_data.state = SORT_LEFT;
-			break;
-		case 6: // forward and sorting to blue
+			ROS_INFO("pick red");
 			send_data.vy = 1;
 			send_data.state = SORT_RIGHT;
 			break;
+		case 6: // forward and sorting to blue
+			ROS_INFO("pick blue");
+			send_data.vy = 1;
+			send_data.state = SORT_LEFT;
+			break;
 		default:
+			std::cout<<"wrong action\n";
 			break;
 	}
+	// ROS_INFO("action num : %d", action->data);
 }
 
 
@@ -179,7 +188,7 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "control");
 	ros::NodeHandle nh;
 
-    action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
+    // action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
 	action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
 	curr_state = FIND_FRONTIER;
 
@@ -202,6 +211,7 @@ int main(int argc, char **argv)
 	init_send_data();
 
 	while(ros::ok()){
+		ROS_INFO("vx: %.2f vy: %.2f wz: %.2f state: %d", send_data.vx, send_data.vy, send_data.wz, send_data.state);
 		sendRioMessage(send_data.vx, send_data.vy , send_data.wz , send_data.state);
 		if(!ready_flag){
 			read(c_socket, &ready_flag, sizeof(bool));
@@ -212,7 +222,7 @@ int main(int argc, char **argv)
 		}
 
 
-		ros::Duration(0.07).sleep();
+		ros::Duration(0.2).sleep();
 		ros::spinOnce();
 	}
 	sendRioMessage(0,0,0,EXIT);
