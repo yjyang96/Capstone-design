@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import torch
 import torch.nn as nn
-import roslib
 
 from std_msgs.msg import Int8
 from sensor_msgs.msg import CompressedImage
