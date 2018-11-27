@@ -46,7 +46,6 @@ class Task:
         self.frame = np.zeros((simulator["height"],simulator["width"],1), np.uint8)
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
         # This is in map scale
-        self.balls = []
         self.red_balls = []
         self.blue_balls = []
         self.red_balls_prev = []
@@ -85,7 +84,6 @@ class Task:
     def reset(self, max_balls=10, max_walls=2):
         self.frame = np.zeros((simulator["height"], simulator["width"], 1), np.uint8)
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray, simulator["width"]*debug_scale_gray, 1), np.uint8)
-        self.balls = []
         self.red_balls = []
         self.blue_balls = []
         self.red_balls_prev = []

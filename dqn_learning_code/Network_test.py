@@ -20,8 +20,8 @@ else:
     img_h, img_w, img_c = env.observation_space.shape
     input_arg = frame_history_len * img_c
 
-test_model = torch.load('DQN_net1121_2.pt')
-print('DQN_net1121_2.pt')
+test_model = torch.load('DQN_net1126 - pm723.pt')
+print('DQN_net1126 - pm723.pt')
 
 input_image = np.zeros((input_arg,img_w,img_h), np.uint8)
 
@@ -30,8 +30,11 @@ obs = env.reset()
 for i in range(4):
     input_image[i]=obs[0]
 
+print("ball num: "+ str(len(env.red_balls)+len(env.blue_balls)))
+
 num_step=0
 done=False
+ball_picked = 0
 
 while(1):        
 
@@ -55,7 +58,10 @@ while(1):
         
     image = torch.from_numpy(input_image).type(dtype).unsqueeze(0)/255.0
     action =torch.IntTensor([[test_model(image).data.max(1)[1].cpu()]])[0,0]
-    print(test_model(image).data, num_step)
+    # print(test_model(image).data, num_step)
+    if(action == 5 or action == 6):
+        ball_picked+=1
+        print(ball_picked)
 
     obs, reward, done = env.step(action)
 
@@ -65,4 +71,6 @@ while(1):
         for i in range(4):
             input_image[i]=obs[:,:,0]
         num_step=0
+        ball_picked = 0
+        print("ball num: "+ str(len(env.red_balls)+len(env.blue_balls)))
 
