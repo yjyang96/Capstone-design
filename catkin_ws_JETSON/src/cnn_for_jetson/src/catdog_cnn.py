@@ -44,6 +44,14 @@ outImageCorners = [(0.0, 0.0),
                    (255.0, 255.0),
                    (0.0, 255.0)]
 
+image_1 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)  # dtype=np.uint8
+image_1[:] = (255, 255, 255)
+image_2 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)
+image_2[:] = (255, 255, 255)
+
+b_image1 = True  # image 1 available
+b_image2 = True  # image 2 available
+
 
 def main(args):
     rospy.init_node('catdog_cnn', anonymous=False)
@@ -72,14 +80,6 @@ def main(args):
             # For debugging
             print('type(markerCorners)', type(markerCorners))
 
-            image_1 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)  # dtype=np.uint8
-            image_1[:] = (255, 255, 255)
-            image_2 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)
-            image_2[:] = (255, 255, 255)
-
-            b_image1 = True  # image 1 available
-            b_image2 = True  # image 2 available
-
             if len(markerIds):
                 cv2.aruco.drawDetectedMarkers(outputImage, markerCorners, markerIds)
                 indice = np.zeros(8)
@@ -99,20 +99,20 @@ def main(args):
 
                 if b_image1:
                     innerMarkerCorners = [markerCorners[indice[0]][2],
-                                        markerCorners[indice[1]][3],
-                                        markerCorners[indice[2]][0],
-                                        markerCorners[indice[3]][1]]
+                                          markerCorners[indice[1]][3],
+                                          markerCorners[indice[2]][0],
+                                          markerCorners[indice[3]][1]]
 
-                    retval, H1 = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
+                    H1, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
                     image_1 = cv2.warpPerspective(inputImage, H1, (255, 255))
 
                 if b_image2:
                     innerMarkerCorners = [markerCorners[indice[4]][2],
-                                        markerCorners[indice[5]][3],
-                                        markerCorners[indice[6]][0],
-                                        markerCorners[indice[7]][1]]
+                                          markerCorners[indice[5]][3],
+                                          markerCorners[indice[6]][0],
+                                          markerCorners[indice[7]][1]]
 
-                    retval, H2 = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
+                    H2, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
                     image_2 = cv2.warpPerspective(inputImage, H2, (255, 255))
             else:
                 b_image1 = False
