@@ -16,10 +16,10 @@ map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size 
 ## it is more nature when we use simulator resol is 2 then 10cm per 1 simulator then .. pixel 3*5.. 
 ## 5cm per 1 map pixel ## when simulator resol is 3, 15cm per 1 simulator pixel 
 # number of pixels behind
-non_detect = 6 
+non_detect = 7
 Back_pixels = 6
 margin = 6 ## MARGIN 
-ball_margin=5
+ball_margin= 8
 Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
 obstacle_base=2/5*map_param["height"] ## 
@@ -366,32 +366,33 @@ class Task:
         # 다음 교육에는 sorting plate 상태에 따라 gray에도 표시해줌
         gray_color = {"red_ball":255, "blue_ball":50, "wall":100, "robot_red":200, "robot_blue":125, "robot_padding":150,  "robot_roller":175}
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
-
+        ran_gray_x=int(random.random()*debug_scale_gray)-1 
+        ran_gray_y=int(random.random()*debug_scale_gray)-1
         for i in range(simulator["width"]):
             for j in range(simulator["height"]):
                 if self.frame[i][j] == self._params["Map.data.obstacle"]:
                     cv2.rectangle(self.frame_gray,
-                                  (i*debug_scale_gray, j*debug_scale_gray),
-                                  ((i + 1)*debug_scale_gray - 1, (j + 1)*debug_scale_gray - 1),
+                                  (i*debug_scale_gray+ran_gray_x, j*debug_scale_gray+ran_gray_y),
+                                  ((i + 1)*debug_scale_gray - 1+ran_gray_x, (j + 1)*debug_scale_gray - 1+ran_gray_y),
                                   gray_color["wall"],
                                   -1)
                 if self.frame[i][j] == self._params["Map.data.red_ball"]:
                     cv2.rectangle(self.frame_gray,
-                                  (i*debug_scale_gray, j*debug_scale_gray),
-                                  ((i + 1)*debug_scale_gray - 1, (j + 1)*debug_scale_gray - 1),
+                                  (i*debug_scale_gray+ran_gray_x, j*debug_scale_gray+ran_gray_y),
+                                  ((i + 1)*debug_scale_gray - 1+ran_gray_x, (j + 1)*debug_scale_gray - 1+ran_gray_y),
                                   gray_color["red_ball"],
                                   -1)
                 if self.frame[i][j] == self._params["Map.data.blue_ball"]:
                     cv2.rectangle(self.frame_gray,
-                                  (i*debug_scale_gray, j*debug_scale_gray),
-                                  ((i + 1)*debug_scale_gray - 1, (j + 1)*debug_scale_gray - 1),
+                                  (i*debug_scale_gray+ran_gray_x, j*debug_scale_gray+ran_gray_y),
+                                  ((i + 1)*debug_scale_gray - 1+ran_gray_x, (j + 1)*debug_scale_gray - 1+ran_gray_y),
                                   gray_color["blue_ball"],
                                   -1)
 
         ### gray color of the bots
         cv2.rectangle(self.frame_gray,
-                      ((simulator["center"] - 2)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray + 0),
-                      ((simulator["center"] + 3)*debug_scale_gray, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1),
+                      ((simulator["center"] - 2)*debug_scale_gray+ran_gray_x, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray + +ran_gray_y),
+                      ((simulator["center"] + 3)*debug_scale_gray+ran_gray_x, (simulator["height"] - (Back_pixels - 3))*debug_scale_gray - 1+ran_gray_y),
                       gray_color["robot_padding"],
                       -1)
         #cv2.rectangle(self.frame_gray,
@@ -399,12 +400,12 @@ class Task:
         #              ((simulator["center"] + 1)*debug_scale_gray, (simulator["height"] - (Back_pixels - 1))*debug_scale_gray - 1),
         #              gray_color["robot"],
         #              -1)
-        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1),\
-                     ((simulator["center"]+1)*debug_scale_gray,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
+        cv2.rectangle(self.frame_gray,(simulator["center"]*debug_scale_gray+ran_gray_x,(simulator["height"]-(Back_pixels+0))*debug_scale_gray+1+ran_gray_y),\
+                     ((simulator["center"]+1)*debug_scale_gray+ran_gray_x,(simulator["height"]-(Back_pixels-1))*debug_scale_gray-1+ran_gray_y),gray_color["robot_blue"] if self.sorting_plate_state == sorting_plate_state_dic['BLUE'] else gray_color["robot_red"],-1)
         ### gray color of the rollers
         cv2.rectangle(self.frame_gray,
-                      ((simulator["center"] - 1)*debug_scale_gray, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray ),
-                      ((simulator["center"] + 2)*debug_scale_gray, (simulator["height"] - (Back_pixels + 1))*debug_scale_gray ),
+                      ((simulator["center"] - 1)*debug_scale_gray+ran_gray_x, (simulator["height"] - (Back_pixels + 2))*debug_scale_gray+ran_gray_y ),
+                      ((simulator["center"] + 2)*debug_scale_gray+ran_gray_x, (simulator["height"] - (Back_pixels + 1))*debug_scale_gray +ran_gray_y),
                       gray_color["robot_roller"],
                       -1)
 
@@ -418,26 +419,26 @@ class Task:
             if self.check_window_state(cx, cy):
                 self.frame[cx][cy] = self._params["Map.data.obstacle"]
         for r_ball in self.red_balls:
-            if self.state_blink == False or random.random() > (0.3 + 0.5*r_ball[1]/3.0/(map_param["height"]/2)):
+            if self.state_blink == False or random.random() > (0.1 + 0.2*r_ball[1]/3.0/(map_param["height"]/2)):
                 if r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)) and r_ball[1] >= non_detect:
                     r_ball_x = r_ball[0]
                     r_ball_y = r_ball[1]
                     if self.state_inaccurate:
-                        r_ball_x = r_ball_x + random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                        r_ball_y = r_ball_y + random.random()*map_param["center"]*(0.1*r_ball_y*r_ball_y/map_param["center"]/map_param["center"] - 0.05)
+                        r_ball_x = r_ball_x + 0.5*random.random()*map_param["center"]*(0.1*r_ball_x*r_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                        r_ball_y = r_ball_y + 0.5*random.random()*map_param["center"]*(0.1*r_ball_y*r_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*r_ball_x/trans_scale))
                     cy = simulator["height"] - Back_pixels - int(round(1.0*r_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
                         self.frame[cx][cy] = self._params["Map.data.red_ball"]
 
         for b_ball in self.blue_balls:
-            if self.state_blink == False or random.random() > (0.3 + 0.05*b_ball[1]/3.0/(map_param["height"]/2)):
+            if self.state_blink == False or random.random() > (0.1 + 0.2*b_ball[1]/3.0/(map_param["height"]/2)):
                 if b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)) and b_ball[1] >= non_detect:
                     b_ball_x = b_ball[0]
                     b_ball_y = b_ball[1]
                     if self.state_inaccurate:
-                        b_ball_x = b_ball_x + random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
-                        b_ball_y = b_ball_y + random.random()*map_param["center"]*(0.1*b_ball_y*b_ball_y/map_param["center"]/map_param["center"] - 0.05)
+                        b_ball_x = b_ball_x + 0.5*random.random()*map_param["center"]*(0.1*b_ball_x*b_ball_x/map_param["center"]/map_param["center"] - 0.05)
+                        b_ball_y = b_ball_y + 0.5*random.random()*map_param["center"]*(0.1*b_ball_y*b_ball_y/map_param["center"]/map_param["center"] - 0.05)
                     cx = simulator["center"] + int(round(1.0*b_ball_x/trans_scale))
                     cy = simulator["height"] - Back_pixels - int(round(1.0*b_ball_y/trans_scale))
                     if self.check_window_state(cx, cy):
@@ -457,7 +458,7 @@ class Task:
         if action in range(self.action_space.size):
             pre_action=action
             if pre_action== 5 or pre_action ==6:
-                reward -=1
+                reward -=4
 
         # reward for red ball
         for i, r_ball in enumerate(self.red_balls):
@@ -467,39 +468,34 @@ class Task:
                 if cy>=0 and cy < reward_region_y and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                     if cy >= reward_region_y/3  and cy < 2*reward_region_y/3:
                         if cx == reward_region_x[1]:
-                            reward += 12
+                            reward += 20
                         elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                            reward += 8
+                            reward += 10
                         else:
-                            reward += -2
+                            reward += -5
                         if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['RED']:
-                            reward += -5
+                            reward += -10
                     else:
                         if cx == reward_region_x[1]:
-                            reward += 8
+                            reward += 10
                         elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                            reward += 4
+                            reward += 5
                         else: 
-                            reward += -2
+                            reward += -5
                         if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['RED']:
-                            reward += -5
+                            reward += -10
                 else :
                     red_balls_temp.append(r_ball)
             else:
                 cx = round(1.0*r_ball[0]/trans_scale)
                 cy = round(1.0*r_ball[1]/trans_scale)
                 if cy < reward_region_y and cy >=0 and r_ball[1] >= int(ball_blind_ratio*(abs(1.0*r_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
-                    if  cx == reward_region_x[1]:
-                        reward += 2.0
-                    elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                        reward += 1.4
-                    else: 
-                        reward += -2
+                    reward += -5
                     if len(self.red_balls_prev) > 0 and int(round(1.0*self.red_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                         self.sorting_plate_state != sorting_plate_state_dic['RED']:
-                        reward += -5
+                        reward += -15
                 else:
                     red_balls_temp.append(r_ball)
         
@@ -511,39 +507,34 @@ class Task:
                 if cy>=0 and cy < reward_region_y and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
                     if cy >=reward_region_y/3  and cy < 2*reward_region_y/3:
                         if cx == reward_region_x[1]:
-                            reward += 12
+                            reward += 20
                         elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                            reward += 8
+                            reward += 10
                         else:
-                            reward += -2
+                            reward += -5
                         if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
-                            reward += -5
+                            reward += -10
                     else: 
                         if cx == reward_region_x[1]:
-                            reward += 8
+                            reward += 10
                         elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                            reward += 4
+                            reward += 5
                         else: 
-                            reward += -2
+                            reward += -5
                         if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                             self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
-                            reward += -5
+                            reward += -10
                 else:
                     blue_balls_temp.append(b_ball)
             else:
                 cx = round(1.0*b_ball[0]/trans_scale)
                 cy = round(1.0*b_ball[1]/trans_scale)
                 if cy < reward_region_y and cy >=0 and b_ball[1] >= int(ball_blind_ratio*(abs(1.0*b_ball[0])-ball_blind_bias)-2) and (cx in reward_region_x):
-                    if  cx == reward_region_x[1]:
-                        reward += 2
-                    elif cx == reward_region_x[0] or cx == reward_region_x[2]:
-                        reward += 1.4
-                    else: 
-                        reward += -2
+                    reward += -5
                     if len(self.blue_balls_prev) > 0 and int(round(1.0*self.blue_balls_prev[i][1]/trans_scale)) < reward_region_y or\
                         self.sorting_plate_state != sorting_plate_state_dic['BLUE']:
-                        reward += -5
+                        reward += -15
                 else:
                     blue_balls_temp.append(b_ball)
 
@@ -568,7 +559,7 @@ class Task:
             if len(red_balls_inscreen) == 0 and len(blue_balls_inscreen) == 0:
                 self.ball_inscreen_flag = self.ball_inscreen_flag + 1
                 if action == 3:
-                    reward += 0.5
+                    reward += 0.7
             else:
                 self.ball_inscreen_flag = 0
         #distance robots from right above corner and distance robots from center of map /
@@ -594,7 +585,7 @@ class Task:
                 dcen=self.state_dis_cen[3]-self.state_dis_cen[0]
                 dcor=self.state_dis_cor[3]-self.state_dis_cor[0]
                 if dcen*dcen < 10 and dcor*dcor < 10 :
-                    reward -= 0.3
+                    reward -= 0.5
 
         if self.iter > max_iter or (len(red_balls_temp) == 0 and len(blue_balls_temp) == 0) : #or self.ball_inscreen_flag >= 10
             self.done = True
@@ -742,7 +733,7 @@ class Task:
 
 
 if __name__ == '__main__':
-    tk = Task(debug_flag=True, test_flag=False, state_blink=False, state_inaccurate=False)
+    tk = Task(debug_flag=True, test_flag=False, state_blink=True, state_inaccurate=True)
     tk.reset()
 
     action = -1
