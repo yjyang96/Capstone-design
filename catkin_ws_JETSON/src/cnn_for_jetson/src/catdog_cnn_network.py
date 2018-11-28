@@ -38,7 +38,7 @@ else:
     test_model=torch.load(path, map_location='cpu')
 print('CNN_dogcat0810.pt was loaded')
 
-# Add from readmarker.cpp ------------------------------------------------------------------------------
+# Add from readmarker.cpp ---------------------------------------------------------------------
 outImageCorners = [(0.0, 0.0),
                    (255.0, 0.0),
                    (255.0, 255.0),
@@ -53,7 +53,7 @@ class catdog_cnn_network:
         # self.image_sub = rospy.Subscriber("image_topic", Image, self.callback)
 
     def callback(self, data):
-        print(type(data))
+        # print(type(data))  # For debugging
 
         for [available, num] in [[data.image1_available, 1], [data.image2_available, 2]]:
             if available == True and num == 1:
@@ -104,11 +104,11 @@ def readmarker(data):
     markerCorners, markerIds, rejectedImgPoints = cv2.aruco.detectMarkers(inputImage, cv2.aruco.DICT_6X6_250)
 
     # For debugging
-    print('type(markerCorners)', type(markerCorners))
+    # print('type(markerCorners)', type(markerCorners))
 
-    image_1 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)  # dtype=np.uint8
+    image_1 = np.zeros((256, 256, 3), dtype=np.uint8)  # dtype=np.uint8, cv2.CV_8UC1, cv2.CV_8UC3 (Not sure)
     image_1[:] = (255, 255, 255)
-    image_2 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)
+    image_2 = np.zeros((256, 256, 3), dtype=np.uint8)
     image_2[:] = (255, 255, 255)
 
     b_image1 = 1  # image 1 available
@@ -152,7 +152,9 @@ def readmarker(data):
         b_image1 = 0
         b_image2 = 0
 
-    # ...
+    # Here in cpp file we convert image_1 & image_2 to text and publich
+    # We can instead just continue procesing here (Feeding to CNN network)
+    
 
 
 if __name__ == '__main__':
