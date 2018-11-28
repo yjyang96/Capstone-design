@@ -1,82 +1,94 @@
 import numpy as np
 import cv2
 import cv2.aruco as aruco
-import glob
 
 cap = cv2.VideoCapture(1)
 
-# termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+width = cap.get(cv2.CAP_PROP_FRAME_WIDTH )
+height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT )
 
-# prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6*7,3), np.float32)
-objp[:,:2] = np.mgrid[0:7,0:6].T.reshape(-1,2)
-
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
-
-images = glob.glob('calib_images/*.jpg')
-
-for fname in images:
-    img = cv2.imread(fname)
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-    # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners(gray, (7,6),None)
-
-    # If found, add object points, image points (after refining them)
-    if ret == True:
-        objpoints.append(objp)
-
-        corners2 = cv2.cornerSubPix(gray,corners,(11,11),(-1,-1),criteria)
-        imgpoints.append(corners2)
-
-        # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (7,6), corners2,ret)
+mtx = np.array([[636.792913,  0, 329.63907],[ 0, 635.580978, 238.191252],[ 0, 0, 1]])
+dist = np.array([[0.028996, -0.136993, 0.002800, 0.000258, 0.00000]])
 
 
-ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(objpoints, imgpoints, gray.shape[::-1],None,None)
+aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
 
+outImageCorners = np.array([[0, 0], [224, 0], [224, 224], [0, 224]])
 
 while (True):
     ret, frame = cap.read()
     # operations on the frame come here
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    aruco_dict = aruco.Dictionary_get(aruco.DICT_6X6_250)
-    parameters = aruco.DetectorParameters_create()
 
     #lists of ids and the corners beloning to each id
-    corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+    corners, ids, rejectedImgPoints = aruco.detectMarkers(gray, aruco_dict)
 
 
     font = cv2.FONT_HERSHEY_SIMPLEX #font for displaying text (below)
 
+    b_image1=0;                #Let image 1 is available
+    b_image2=0;                #Let image 2 is available
+
+    # width = frame.cols()         #Store Image's width, height in pixels
+    # height = frame.rows()
+
+    marker1X = [float('nan'),float('nan'),float('nan'),float('nan')]
+    marker1Y = [float('nan'),float('nan'),float('nan'),float('nan')]
+    marker2X = [float('nan'),float('nan'),float('nan'),float('nan')]
+    marker2Y = [float('nan'),float('nan'),float('nan'),float('nan')]
+
+    image_1 = np.zeros((224,224,3), np.uint8)
+    image_2 = np.zeros((224,224,3), np.uint8)
+    indice = {}
+    aruco.drawDetectedMarkers(frame, corners) #Draw A square around the markers
 
     if np.all(ids != None):
+        
+        for i, id_ in enumerate(ids):
+            indice[id_[0]-1] = i
+            if id_[0] < 5:
+                b_image1+=1
+            else:
+                b_image2+=1
 
-        rvec, tvec ,_ = aruco.estimatePoseSingleMarkers(corners, 0.05, mtx, dist) #Estimate pose of each marker and return the values rvet and tvec---different from camera coefficients
-        #(rvec-tvec).any() # get rid of that nasty numpy value array error
+        if b_image1 == 4:
+            innerMarkerCorners = []
+            innerMarkerCorners.append(corners[indice[0]][0][2])
+            innerMarkerCorners.append(corners[indice[1]][0][3])
+            innerMarkerCorners.append(corners[indice[2]][0][0])
+            innerMarkerCorners.append(corners[indice[3]][0][1])
+            for i in range(4):
+                marker1X[i], marker1Y[i] = innerMarkerCorners[i]
 
-        for i in range(0, ids.size):
-            aruco.drawAxis(frame, mtx, dist, rvec[i], tvec[i], 0.1)  # Draw Axis
-        aruco.drawDetectedMarkers(frame, corners) #Draw A square around the markers
+            innerMarkerCorners = np.array(innerMarkerCorners)
 
+            h1, status = cv2.findHomography(innerMarkerCorners, outImageCorners)
+            image_1 = cv2.warpPerspective(frame, h1, (224, 224))
 
-        ###### DRAW ID #####
-        strg = ''
-        for i in range(0, ids.size):
-            strg += str(ids[i][0])+', '
+        if b_image2 == 4:
+            innerMarkerCorners = []
+            innerMarkerCorners.append(corners[indice[4]][0][2])
+            innerMarkerCorners.append(corners[indice[5]][0][3])
+            innerMarkerCorners.append(corners[indice[6]][0][0])
+            innerMarkerCorners.append(corners[indice[7]][0][1])
+            for i in range(4):
+                marker2X[i], marker2Y[i] = innerMarkerCorners[i]
 
-        cv2.putText(frame, "Id: " + strg, (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
+            innerMarkerCorners = np.array(innerMarkerCorners)
 
+            h2, status = cv2.findHomography(innerMarkerCorners, outImageCorners)
+            image_2 = cv2.warpPerspective(frame, h2, (224, 224))
 
-    else:
-        ##### DRAW "NO IDS" #####
-        cv2.putText(frame, "No Ids", (0,64), font, 1, (0,255,0),2,cv2.LINE_AA)
+    b_image1 = True if b_image1 == 4 else False
+    b_image2 = True if b_image2 == 4 else False
 
     # Display the resulting frame
     cv2.imshow('frame',frame)
+    cv2.moveWindow('frame', 50, 20)
+    
+    showImg = np.concatenate((image_1, image_2), axis=0)
+    cv2.imshow('out',showImg)
+    cv2.moveWindow('out', int(width) + 50, 20)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
