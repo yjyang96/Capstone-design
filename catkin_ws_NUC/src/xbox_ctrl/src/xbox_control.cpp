@@ -138,10 +138,12 @@ int main(int argc, char **argv) {
 		if(button[0]){
 			sort_state = sort_state == 2 ? 1 : sort_state + 1;
 			tcp_message.state = sort_state;
+			printf("sort_state %d\n", sort_state);
 		}
 		else if(button[1]){
 			dump_state = dump_state == 5 ? 3 : dump_state + 1;
 			tcp_message.state = dump_state;
+			printf("dump_state %d\n", dump_state);
 		}
 
 		write(c_socket, &tcp_message, sizeof(tcp_message));

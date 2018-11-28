@@ -8,12 +8,24 @@
 #include <iostream>
 #include <stdio.h>
 #include <std_msgs/Int8.h>
+
+
+#include <geometry_msgs/PoseStamped.h>
+#include <actionlib_msgs/GoalID.h>
+
+#include "core_msgs/ball_position.h"
+
+
+#include "sensor_msgs/PointCloud.h"
+
 #define _USE_MATH_DEFINES
 
 #define PORT 4000
 #define IPADDR "172.16.0.1"
 
-enum Overall_State {FIND_FRONTIER, PICK_BALL};
+enum Overall_State {FIND_FRONTIER, PICK_BALL, GO_STARTPOS,										\
+					GO_RIGHT_GOAL_MARKER, GO_RIGHT_GOAL_LIDAR, DROP_RIGHT, GO_STARTPOS_AGAIN,	\
+					GO_LEFT_GOAL_MARKER, GO_LEFT_GOAL_LIDAR, DROP_LEFT};
 enum Rio_State {NOTHING, SORT_LEFT, SORT_RIGHT, DUMP_RIGHT, DUMP_MID, DUMP_LEFT, EXIT};
 
 struct tcp_msg{
@@ -35,9 +47,6 @@ struct send_data{
 struct send_data send_data;
 bool ready_flag = false;
 Overall_State curr_state;
-
-//subscribing msgs about action, it could be shutdown and re connected.
-ros::Subscriber action_sub;
 
 void init_send_data(){
 	send_data.vx = 0;
@@ -76,6 +85,10 @@ void sendRioMessage(float vx, float vy, float wz, Rio_State rio_state){
 	motor[2] *= 30;
 	motor[3] *= 30;
 
+	for(int i = 0; i < 4; i++){
+		motor[i] /= 6;
+	}
+
 	//for motor recalibration
 	motor[2] = -motor[2];
 	motor[3] = -motor[3];
@@ -107,6 +120,7 @@ void sendRioMessage(float vx, float vy, float wz, Rio_State rio_state){
 
 	write(c_socket, &tcp_message, sizeof(tcp_message));
 	ready_flag = false;
+	// ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
 
 }
 
@@ -160,16 +174,104 @@ void msgCallback_for_picking(const std_msgs::Int8::ConstPtr& action)
 			send_data.wz = -1;
 			break;
 		case 5: // forward and sorting to red
-			send_data.vy = 1;
-			send_data.state = SORT_LEFT;
-			break;
-		case 6: // forward and sorting to blue
+			ROS_INFO("pick red");
 			send_data.vy = 1;
 			send_data.state = SORT_RIGHT;
 			break;
+		case 6: // forward and sorting to blue
+			ROS_INFO("pick blue");
+			send_data.vy = 1;
+			send_data.state = SORT_LEFT;
+			break;
 		default:
+			ROS_INFO("wrong action");
 			break;
 	}
+	// ROS_INFO("action num : %d", action->data);
+}
+
+
+//------------------------------------------------------------------------
+//for detect ball check
+
+
+#define UP          0
+#define DOWN        1
+
+#define BLUE        0
+#define RED         1
+
+#define UP_BLUE     0
+#define UP_RED      1
+#define DOWN_BLUE   2
+#define DOWN_RED    3
+
+std::vector<std::array<float, 3>> balls_pos[4];
+
+class msgCallback_balls {
+	public:
+		int color; // 0 for blue
+		int camera_num; // 0 for upper
+		
+		msgCallback_balls (int _camera_num, int _color) {
+			color = _color;
+			camera_num = _camera_num;
+		}
+
+        void get_pos(const core_msgs::ball_position& msg) {
+            // std::cout<<camera_num<<color<<"what\n";
+            balls_pos[2*camera_num + color].clear();
+            for (int i=0; i<msg.size; i++) {
+                std::array<float, 3> pos;
+                pos[0] = msg.img_x[i];
+                pos[1] = msg.img_y[i];
+                pos[2] = msg.img_z[i];
+                balls_pos[2*camera_num + color].push_back(pos);
+            }
+        }
+};
+
+//------------------------------------------------------------------------
+// for get scan data
+
+float coeffi[2] = {0,0}; //a, b y=ax+b for wall
+bool is_new_coeffi = false;
+
+void get_scan(const sensor_msgs::PointCloud& points){
+	std::vector<geometry_msgs::Point32> positions;
+	int n = 20;
+	for(int i =0; i < points.points.size(); i++){
+		if(points.channels[1].values[i] >= 360 - n && points.channels[1].values[i] <= n){ //use front scan data
+			positions.push_back(points.points[i]);
+		}
+	}
+	
+	// float a, b;
+	float x = 0;
+	float y = 0;
+	float xy = 0;
+	float xx = 0;
+	for(int i =0; i<positions.size();i++){
+		x += positions[i].x;
+		y += positions[i].y;
+		xy += positions[i].x * positions[i].y;
+		xx += positions[i].x * positions[i].x;
+	}
+
+	coeffi[0] = ((2*n + 1) * xy - x * y)/((2*n+1)*xx - x*x);
+	coeffi[1] = (xx*y-x*xy)/((2*n+1)*xx-x*x);
+
+	is_new_coeffi = true;
+	// std::cout<<coeffi[0]<<"       "<<coeffi[1]<<"\n";
+
+	// sensor_msgs::PointCloud test;
+	// test.header = points.header;
+	// test.points.resize(positions.size());
+	// for(int i= 0; i< positions.size();i++){
+	// 	test.points[i] = positions[i];
+	// }
+	// pub_test.publish(test);
+
 }
 
 
@@ -179,13 +281,24 @@ int main(int argc, char **argv)
 	ros::init(argc, argv, "control");
 	ros::NodeHandle nh;
 
-    action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
-	action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
+
+
+	ros::Publisher goal_pub = nh.advertise<geometry_msgs::PoseStamped>("move_base_simple/goal",1);
+	ros::Publisher goal_cancle = nh.advertise<actionlib_msgs::GoalID>("/move_base/cancel",1);
+    
+	ros::Subscriber action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
+	// action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
 	curr_state = FIND_FRONTIER;
+
+	msgCallback_balls upper_blue(UP, BLUE);
+	msgCallback_balls upper_red(UP, RED);
+
+    ros::Subscriber blue_sub = nh.subscribe("/blue_tf", 1, &msgCallback_balls::get_pos, &upper_blue);
+	ros::Subscriber red_sub = nh.subscribe("/red_tf", 1, &msgCallback_balls::get_pos, &upper_red);
 
 	// socket open start
 	c_socket = socket(PF_INET, SOCK_STREAM, 0);
-	std::cout<<"socket created\n";
+	ROS_INFO("socket created");
 	c_addr.sin_addr.s_addr = inet_addr(IPADDR);
 	c_addr.sin_family = AF_INET;
 	c_addr.sin_port = htons(PORT);
@@ -193,7 +306,7 @@ int main(int argc, char **argv)
 	// ros::spin();
 
 	if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
-		std::cout<<"Failed to connect\n";
+		ROS_INFO("Failed to connect");
 		close(c_socket);
 		return -1;
 	}
@@ -201,18 +314,87 @@ int main(int argc, char **argv)
 	
 	init_send_data();
 
+	
+
 	while(ros::ok()){
+		switch(curr_state){
+			case FIND_FRONTIER:{
+				//publish constant goal
+				geometry_msgs::PoseStamped goal_position;
+				goal_position.header.frame_id = "map";
+				goal_position.header.stamp = ros::Time::now();
+				goal_position.pose.position.x = 0.8;
+				goal_position.pose.position.y = 0;
+				goal_position.pose.orientation.w = 1;
+				goal_pub.publish(goal_position);
+
+				//cancle goal
+				if(balls_pos[UP_BLUE].size() > 0 || balls_pos[UP_RED].size() > 0 ){
+					actionlib_msgs::GoalID cancle_msg;
+					goal_cancle.publish(cancle_msg);
+					curr_state = PICK_BALL;
+					ROS_INFO("change state to PICK BALL");
+					action_sub.shutdown();
+					action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
+				}
+				break;
+			}
+			case PICK_BALL:{
+				action_sub.shutdown();
+				action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);;
+				curr_state = GO_STARTPOS;
+				break;
+			}
+			case GO_STARTPOS:{
+				geometry_msgs::PoseStamped goal_position;
+				goal_position.header.frame_id = "map";
+				goal_position.header.stamp = ros::Time::now();
+				goal_position.pose.position.x = 0;
+				goal_position.pose.position.y = 0;
+				goal_position.pose.orientation.w = 1;
+				goal_pub.publish(goal_position);
+
+				actionlib_msgs::GoalID cancle_msg;
+				goal_cancle.publish(cancle_msg);
+				break;
+			}
+			case GO_RIGHT_GOAL_MARKER:{
+				break;
+			}
+			case GO_RIGHT_GOAL_LIDAR:{
+				break;
+			}
+			case DROP_RIGHT:{
+				break;
+			}
+			case GO_STARTPOS_AGAIN:{
+				break;
+			}
+			case GO_LEFT_GOAL_MARKER:{
+				break;
+			}
+			case GO_LEFT_GOAL_LIDAR:{
+				break;
+			}
+			case DROP_LEFT:{
+				break;
+			}
+			default:{
+				ROS_INFO("error overall state, non defined");
+			}
+		}
+		ROS_INFO("vx: %.2f vy: %.2f wz: %.2f state: %d", send_data.vx, send_data.vy, send_data.wz, send_data.state);
 		sendRioMessage(send_data.vx, send_data.vy , send_data.wz , send_data.state);
 		if(!ready_flag){
 			read(c_socket, &ready_flag, sizeof(bool));
 			if(!ready_flag){
-				std::cout<<"msg not ready\n";
+				ROS_INFO("msg not ready");
 				ros::shutdown();
 			}
 		}
 
 
-		ros::Duration(0.07).sleep();
+		ros::Duration(0.2).sleep();
 		ros::spinOnce();
 	}
 	sendRioMessage(0,0,0,EXIT);

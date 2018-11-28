@@ -15,35 +15,14 @@
 #include "readmarker/markerXY.h"                                           //Custom msg. See readermarker/msg/markerXY.msg
 #include <math.h>
 
-
-
-#include <arpa/inet.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#define PORT 4000
-#define IPADDR "172.16.0.1"
-
-struct tcp_msg{
-  float data[4];
-  int state;
-};
-
-int c_socket;
-struct sockaddr_in c_addr;
-float motor_pos = 0;
-
-bool ready_flag = false;
-
 using namespace cv;
 using namespace std;
 
-Mat inputImage;                                                             //Matrix where the input image will be store (subscribing the message from webcam node)
 vector<int> markerIds;                                                      //Vector to store the marker Ids
 vector<vector<Point2f> > markerCorners, rejectedCandidates;                 //markerCorners : Vecter to store the coordinates of marker corners
 vector<Point2f> innerMarkerCorners;                                         //Vector to store the coordinates of inner marker corners
 vector<Point2f> outImageCorners;                                            //Vector to store the coordinates of output image corners,
-                                                                            //((0,0), (255,0), (255,255), (0,255) for a 256x256 size image)
+//                                                                             //((0,0), (255,0), (255,255), (0,255) for a 256x256 size image)
 
 Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(aruco::DICT_6X6_250); //Load AruCo dictionary
 
@@ -55,9 +34,6 @@ int b_image2;                                                               //In
 
 ros::Publisher input_status_pub;                                            //Publisher to publish the message
 ros::Publisher cmd_target_pub;
-
-sensor_msgs::ImagePtr pub_msg1;                                             //Published image 1
-sensor_msgs::ImagePtr pub_msg2;                                             //Published image 2
 
 readmarker::markermsg cropped_img_msg;                                      //Message to be published containing the images, and booleans
 readmarker::markerXY cmd_target;                                            //Message to save the detected marker infomation
@@ -77,16 +53,13 @@ void Initialization()                                                       //In
   b_image2 = 1;                                                             //Initial setting : Image 2 is available
 }
 
-void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Function which will run when the message "msg" from webcam node is subscribed
+void find_marker(Mat frame)                   //Function which will run when the message "msg" from webcam node is subscribed
 {
   b_image1=1;                                                               //Let image 1 is available
   b_image2=1;                                                               //Let image 1 is available
-  cv_bridge::CvImagePtr cv_ptr;                                             //Image pointer of incoming webcam image (CvImage)
-  cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);    //Convert the image message to an OpenCV compatible CvImage
-  cv_ptr->image.copyTo(inputImage);                                         //Generate the matrix inputImage by copying the incoming image at cv_ptr
 
-  cmd_target.width = cv_ptr->image.cols;                                    //Store Image's width, height in pixels
-  cmd_target.height = cv_ptr->image.rows;
+  cmd_target.width = frame.cols;                                    //Store Image's width, height in pixels
+  cmd_target.height = frame.rows;
 
   cmd_target.marker1X[0] = NAN; cmd_target.marker1Y[0] = NAN;               // ******************** REVIEW 5 *********************** //
   cmd_target.marker1X[1] = NAN; cmd_target.marker1Y[1] = NAN;
@@ -98,12 +71,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Fu
   cmd_target.marker2X[2] = NAN; cmd_target.marker2Y[2] = NAN;
   cmd_target.marker2X[3] = NAN; cmd_target.marker2Y[3] = NAN;
   
-  aruco::detectMarkers(inputImage, dictionary, markerCorners, markerIds);   // ******************** REVIEW 6 *********************** //
+  aruco::detectMarkers(frame, dictionary, markerCorners, markerIds);   // ******************** REVIEW 6 *********************** //
 
-  Mat outputImage;                                                          //Matrix where the detected markers will be shown in inputImage
-  inputImage.copyTo(outputImage);                                           //Copy the inputImage to outputImage. The markers will be drawn afterwards
-  image_1 = Mat(256,256, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
-  image_2 = Mat(256,256, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
+  Mat outputImage;                                                          //Matrix where the detected markers will be shown in frame
+  frame.copyTo(outputImage);                                           //Copy the frame to outputImage. The markers will be drawn afterwards
+  image_1 = Mat(224,224, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
+  image_2 = Mat(224,224, CV_8UC3, Scalar(255,255,255));                     //initialize image_1 to a white 256x256 image
 
   if (markerIds.size() > 0)                                                 //If there is any marker detected
   {
@@ -152,7 +125,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Fu
 
         Mat H1 = findHomography(innerMarkerCorners,outImageCorners,0);      //Find the transformation matrix (homography)
                                                                             //that transformate the innerMarkerCorners coordinates to outImageCorners coordinates
-        warpPerspective(inputImage, image_1, H1, Size(255, 255));           //Warp the inputImage to image_1 using the homography
+        warpPerspective(frame, image_1, H1, Size(255, 255));                //Warp the frame to image_1 using the homography
                                                                             //The rest of the image will be cut out
       }
       if(b_image2==1)
@@ -171,7 +144,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Fu
 
         Mat H2 = findHomography(innerMarkerCorners,outImageCorners,0);        //Find the transformation matrix (homography)
                                                                               //that transformate the innerMarkerCorners coordinates to outImageCorners coordinates
-        warpPerspective(inputImage, image_2, H2, Size(255, 255));             //Warp the inputImage to image_2 using the homography
+        warpPerspective(frame, image_2, H2, Size(255, 255));                  //Warp the frame to image_2 using the homography
                                                                               //The rest of the image will be cut out
       }
   }
@@ -183,12 +156,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)                   //Fu
 
   cropped_img_msg.image1_available = b_image1;                                  //Set the int message image1_available as b_image1
   cropped_img_msg.image2_available = b_image2;                                  //Set the int message image2_available as b_image2
-  if(b_image1){
-  	motor_pos = 1;
-  }
-  if(b_image2){
-  	motor_pos = -1;
-  }
+
   imencode(".jpg", image_1, cropped_img_msg.cimage1.data);                      //Set the compressed image message cimage1 as image_1
   imencode(".jpg", image_2, cropped_img_msg.cimage2.data);                      //Set the compressed image message cimage2 as image_2
   input_status_pub.publish(cropped_img_msg);                                    //Publish the message containing cropped images etc.
@@ -213,72 +181,20 @@ int main(int argc, char** argv)
   ros::NodeHandle nh;                                                           //Set the node handle as nh
   input_status_pub = nh.advertise<readmarker::markermsg>("cropped_img", 100);   //Declare publisher using the message file 'marekermsg'
   cmd_target_pub = nh.advertise<readmarker::markerXY>("markerXY", 100);         //Declare publisher using the message file 'marekermsg'
-  image_transport::ImageTransport it(nh);                                       //Set the image transport it using the node handle nh
-  image_transport::Subscriber sub = it.subscribe("camera/image", 1, imageCallback); // ******************** REVIEW 8 *********************** //
+
+
+  VideoCapture cap = cv::VideoCapture(0);
+  Mat frame;
+
+  ROS_INFO("Webcam Running");
+  while (nh.ok()) {
+    cap >> frame;
+    find_marker(frame);
 
 
 
-  // socket open start
-  c_socket = socket(PF_INET, SOCK_STREAM, 0);
-  std::cout<<"socket created\n";
-  c_addr.sin_addr.s_addr = inet_addr(IPADDR);
-  c_addr.sin_family = AF_INET;
-  c_addr.sin_port = htons(PORT);
 
-  // ros::spin();
-
-  if(connect(c_socket, (struct sockaddr*) &c_addr, sizeof(c_addr)) == -1){
-    std::cout<<"Failed to connect\n";
-    close(c_socket);
-    return -1;
-  }
-
-  tcp_msg tcp_message;
-
-  tcp_message.data[0] = 0;
-  tcp_message.data[1] = 0;
-  tcp_message.data[2] = 0;
-  tcp_message.data[3] = 0;
-  tcp_message.state = 0;
-  while(ros::ok()){
-  	switch((int)motor_pos){
-  		case 1:
-        tcp_message.state = 3;  
-        write(c_socket, &tcp_message, sizeof(tcp_message));
-        read(c_socket, &ready_flag, sizeof(bool));
-        motor_pos = 0;
-        std::cout<<"dog1\n";
-        // ros::Duration(5).sleep();
-        write(c_socket, &tcp_message, sizeof(tcp_message));
-        read(c_socket, &ready_flag, sizeof(bool));
-        std::cout<<"dog2\n";
-        break;
-      case -1:
-        tcp_message.state = 5;  
-        write(c_socket, &tcp_message, sizeof(tcp_message));
-        read(c_socket, &ready_flag, sizeof(bool));		
-        std::cout<<"cat1\n";
-        // ros::Duration(5).sleep();
-        motor_pos = 0;
-        write(c_socket, &tcp_message, sizeof(tcp_message));
-        read(c_socket, &ready_flag, sizeof(bool));
-        std::cout<<"cat2\n";
-        break;
-      default:
-        tcp_message.state = 4;
-        write(c_socket, &tcp_message, sizeof(tcp_message));
-        read(c_socket, &ready_flag, sizeof(bool));
-        break;
-  	}
     ros::Duration(0.07).sleep();
     ros::spinOnce();
   }
-  tcp_message.data[0] = 0;
-  tcp_message.data[1] = 0;
-  tcp_message.data[2] = 0;
-  tcp_message.data[3] = 0;
-  tcp_message.state = 6;
-  write(c_socket, &tcp_message, sizeof(tcp_message));
-  close(c_socket);
-
 }

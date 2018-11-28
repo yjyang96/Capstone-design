@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from readmarker.msg import markerXY                             #Custom msg for marker location
+from readmarker.msg import markerXY                             #Custom msg for marker locationz
 from geometry_msgs.msg import Twist                             #Msg for cmd_vel, contains linear/angular xyz velocity
 import math                                                     #Include isnan function
 
