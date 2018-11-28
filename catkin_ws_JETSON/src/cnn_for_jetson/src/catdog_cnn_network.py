@@ -21,11 +21,10 @@ from cv_bridge import CvBridge, CvBridgeError  # Add by myself
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-data_T= transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+data_T = transforms.Compose([transforms.Resize(256),
+                             transforms.CenterCrop(224),
+                             transforms.ToTensor(),
+                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 rospack = rospkg.RosPack()
 root = rospack.get_path('cnn_for_jetson')

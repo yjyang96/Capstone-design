@@ -20,11 +20,10 @@ from std_msgs.msg import String
 # CNN ------------------------------------------------------------------------------------------------------------------
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-data_T= transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+data_T = transforms.Compose([#transforms.Resize(256),
+                             #transforms.CenterCrop(224),
+                             transforms.ToTensor(),
+                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 rospack = rospkg.RosPack()
 root = rospack.get_path('cnn_for_jetson')
@@ -36,7 +35,23 @@ if torch.cuda.is_available():
 else:
     test_model=torch.load(path, map_location='cpu')
 print('CNN_dogcat0810.pt was loaded')
-# ----------------------------------------------------------------------------------------------------------------------
+
+
+# Add from readmarker.cpp ----------------------------------------------------------------------------------------------
+outImageCorners = [(0.0, 0.0),
+                   (255.0, 0.0),
+                   (255.0, 255.0),
+                   (0.0, 255.0)]
+
+image_1 = np.zeros((224, 224, 3), dtype=np.uint8)  # np.uint8, cv2.CV_8UC1 (Not sure)
+image_1[:] = (255, 255, 255)
+image_2 = np.zeros((224, 224, 3), dtype=np.uint8)
+image_2[:] = (255, 255, 255)
+
+b_image1 = True  # image 1 available
+b_image2 = True  # image 2 available
+
+indice = np.zeros(8)
 
 
 def main(args):
@@ -66,17 +81,9 @@ def main(args):
             # For debugging
             print('type(markerCorners)', type(markerCorners))
 
-            image_1 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)  # dtype=np.uint8
-            image_1[:] = (255, 255, 255)
-            image_2 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)
-            image_2[:] = (255, 255, 255)
-
-            b_image1 = True  # image 1 available
-            b_image2 = True  # image 2 available
-
             if len(markerIds):
                 cv2.aruco.drawDetectedMarkers(outputImage, markerCorners, markerIds)
-                indice = np.zeros(8)
+                indice[:] = 0
 
                 for i in range(0, 4):
                     temp = np.where(markerIds == i + 1)[0]
@@ -93,25 +100,25 @@ def main(args):
 
                 if b_image1:
                     innerMarkerCorners = [markerCorners[indice[0]][2],
-                                        markerCorners[indice[1]][3],
-                                        markerCorners[indice[2]][0],
-                                        markerCorners[indice[3]][1]]
+                                          markerCorners[indice[1]][3],
+                                          markerCorners[indice[2]][0],
+                                          markerCorners[indice[3]][1]]
 
-                    retval, H1 = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_1 = cv2.warpPerspective(inputImage, H1, (255, 255))
+                    H1, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
+                    image_1 = cv2.warpPerspective(inputImage, H1, (224, 224))
 
                 if b_image2:
                     innerMarkerCorners = [markerCorners[indice[4]][2],
-                                        markerCorners[indice[5]][3],
-                                        markerCorners[indice[6]][0],
-                                        markerCorners[indice[7]][1]]
+                                          markerCorners[indice[5]][3],
+                                          markerCorners[indice[6]][0],
+                                          markerCorners[indice[7]][1]]
 
-                    retval, H2 = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_2 = cv2.warpPerspective(inputImage, H2, (255, 255))
+                    H2, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
+                    image_2 = cv2.warpPerspective(inputImage, H2, (224, 224))
             else:
                 b_image1 = False
                 b_image2 = False
-            # Frame processing routine ---------------------------------------------------------------------------------
+            # End of frame processing routine --------------------------------------------------------------------------
 
             # Here in cpp file we convert image_1 & image_2 to text and publish
             # We can instead just continue processing here (Feeding to CNN network)
@@ -130,6 +137,7 @@ def main(args):
                     cv2.waitKey(500)
                 else:
                     continue
+
                 cv_image = Image.fromarray(cv_image)
                 input_transform = data_T(cv_image)
                 input_tensor = torch.zeros([1, 3, 224, 224]).to(device)
@@ -138,7 +146,7 @@ def main(args):
                 outputs = test_model(input_tensor)
                 _, preds = torch.max(outputs, 1)
                 # print(preds)
-                pub = rospy.Publisher('catdog/String', String, queue_size=1)
+                # pub = rospy.Publisher('catdog/String', String, queue_size=1)
                 for x in ['cat', 'dog']:
                     if x == ['cat', 'dog'][preds]:
                         pub.publish(x)
@@ -150,7 +158,7 @@ def main(args):
             if cv2.waitKey(100) == 113:  # if 'q' is pressed, then program will be terminated
                 cv2.destroyAllWindows()
                 break
-            # CNN routine ----------------------------------------------------------------------------------------------
+            # End of CNN routine ---------------------------------------------------------------------------------------
     else:
         print("camera open failed")
     
