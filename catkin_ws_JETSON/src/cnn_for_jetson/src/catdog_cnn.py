@@ -36,7 +36,13 @@ if torch.cuda.is_available():
 else:
     test_model=torch.load(path, map_location='cpu')
 print('CNN_dogcat0810.pt was loaded')
-# ----------------------------------------------------------------------------------------------------------------------
+
+
+# Add from readmarker.cpp ----------------------------------------------------------------------------------------------
+outImageCorners = [(0.0, 0.0),
+                   (255.0, 0.0),
+                   (255.0, 255.0),
+                   (0.0, 255.0)]
 
 
 def main(args):
@@ -111,7 +117,7 @@ def main(args):
             else:
                 b_image1 = False
                 b_image2 = False
-            # Frame processing routine ---------------------------------------------------------------------------------
+            # End of frame processing routine --------------------------------------------------------------------------
 
             # Here in cpp file we convert image_1 & image_2 to text and publish
             # We can instead just continue processing here (Feeding to CNN network)
@@ -138,7 +144,7 @@ def main(args):
                 outputs = test_model(input_tensor)
                 _, preds = torch.max(outputs, 1)
                 # print(preds)
-                pub = rospy.Publisher('catdog/String', String, queue_size=1)
+                # pub = rospy.Publisher('catdog/String', String, queue_size=1)
                 for x in ['cat', 'dog']:
                     if x == ['cat', 'dog'][preds]:
                         pub.publish(x)
@@ -150,7 +156,7 @@ def main(args):
             if cv2.waitKey(100) == 113:  # if 'q' is pressed, then program will be terminated
                 cv2.destroyAllWindows()
                 break
-            # CNN routine ----------------------------------------------------------------------------------------------
+            # End of CNN routine ---------------------------------------------------------------------------------------
     else:
         print("camera open failed")
     

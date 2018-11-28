@@ -26,7 +26,7 @@ def read_cam():
             pub.publish(msg)
             if cv2.waitKey(100) == 113: # if 'q' is pressed, then program will be terminated
                 cv2.destroyAllWindows()
-                break ;
+                break
     else:
      print("camera open failed")
     
