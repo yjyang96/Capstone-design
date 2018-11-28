@@ -20,8 +20,8 @@ from std_msgs.msg import String
 # CNN ------------------------------------------------------------------------------------------------------------------
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-data_T = transforms.Compose([transforms.Resize(256),
-                             transforms.CenterCrop(224),
+data_T = transforms.Compose([#transforms.Resize(256),
+                             #transforms.CenterCrop(224),
                              transforms.ToTensor(),
                              transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
@@ -43,13 +43,15 @@ outImageCorners = [(0.0, 0.0),
                    (255.0, 255.0),
                    (0.0, 255.0)]
 
-image_1 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)  # dtype=np.uint8
+image_1 = np.zeros((224, 224, 3), dtype=np.uint8)  # np.uint8, cv2.CV_8UC1 (Not sure)
 image_1[:] = (255, 255, 255)
-image_2 = np.zeros((256, 256, 3), dtype=cv2.CV_8UC1)
+image_2 = np.zeros((224, 224, 3), dtype=np.uint8)
 image_2[:] = (255, 255, 255)
 
 b_image1 = True  # image 1 available
 b_image2 = True  # image 2 available
+
+indice = np.zeros(8)
 
 
 def main(args):
@@ -81,7 +83,7 @@ def main(args):
 
             if len(markerIds):
                 cv2.aruco.drawDetectedMarkers(outputImage, markerCorners, markerIds)
-                indice = np.zeros(8)
+                indice[:] = 0
 
                 for i in range(0, 4):
                     temp = np.where(markerIds == i + 1)[0]
@@ -103,7 +105,7 @@ def main(args):
                                           markerCorners[indice[3]][1]]
 
                     H1, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_1 = cv2.warpPerspective(inputImage, H1, (255, 255))
+                    image_1 = cv2.warpPerspective(inputImage, H1, (224, 224))
 
                 if b_image2:
                     innerMarkerCorners = [markerCorners[indice[4]][2],
@@ -112,7 +114,7 @@ def main(args):
                                           markerCorners[indice[7]][1]]
 
                     H2, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_2 = cv2.warpPerspective(inputImage, H2, (255, 255))
+                    image_2 = cv2.warpPerspective(inputImage, H2, (224, 224))
             else:
                 b_image1 = False
                 b_image2 = False
