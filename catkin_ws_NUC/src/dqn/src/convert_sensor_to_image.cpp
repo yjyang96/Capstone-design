@@ -22,7 +22,7 @@
 #include "core_msgs/multiarray.h"
 
 
-#include "sensor_msgs/LaserScan.h"
+#include "sensor_msgs/PointCloud.h"
 #include "sensor_msgs/CompressedImage.h"
 
 #include "opencv2/opencv.hpp"
@@ -90,9 +90,8 @@ int C_Y = 0.10/MAP_RESOL;
 boost::mutex map_mutex; // I very much doubt why do we have to use mutex?
 
 int lidar_size;
-float lidar_degree[400];
-float lidar_distance[400];
-float lidar_obs;
+float lidar_x[400];
+float lidar_y[400];
 
 int ball_number;
 float ball_X[20];
@@ -138,15 +137,14 @@ class msgCallback_balls {
 // --------------------------------------------------------------------------------------------
 
 
-void lidar_Callback(const sensor_msgs::LaserScan::ConstPtr& scan)
+void get_scan(const sensor_msgs::PointCloud& points)
 {
     map_mutex.lock();
-    int count = scan->scan_time / scan->time_increment;
-    lidar_size = count;
-    for (int i=0; i<count; i++)
+    lidar_size = points.points.size();
+    for (int i=0; i<lidar_size; i++)
     {
-        lidar_degree[i] = scan->angle_min + scan->angle_increment*i;
-        lidar_distance[i] = scan->ranges[i];
+        lidar_x[i] = points.points[i].x;
+        lidar_y[i] = points.points[i].y;
     }
     map_mutex.unlock();
 }
@@ -203,7 +201,7 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "covert_sensor_to_image");
     ros::NodeHandle n;
-    ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 1, lidar_Callback);
+	ros::Subscriber scan_sub = n.subscribe("scan_points", 1, &get_scan);
     //ros::Subscriber sub1 = n.subscribe<core_msgs::ball_position>("/position", 1000, camera_Callback);
     ros::Publisher pub = n.advertise<sensor_msgs::CompressedImage>("RL_state/image", 1); //setting publisher
     sensor_msgs::CompressedImage msg;
@@ -211,13 +209,13 @@ int main(int argc, char **argv)
     // ----------------------------------------------------------------------------------
     msgCallback_balls upper_blue(UP, BLUE);
 	msgCallback_balls upper_red(UP, RED);
-	msgCallback_balls down_blue(DOWN, BLUE);
-	msgCallback_balls down_red(DOWN, RED);
+	// msgCallback_balls down_blue(DOWN, BLUE);
+	// msgCallback_balls down_red(DOWN, RED);
 
     ros::Subscriber blue_sub = n.subscribe("/blue_tf", 1, &msgCallback_balls::get_pos, &upper_blue);
 	ros::Subscriber red_sub = n.subscribe("/red_tf", 1, &msgCallback_balls::get_pos, &upper_red);
-	ros::Subscriber blue_sub2 = n.subscribe("/blue_tf2", 1, &msgCallback_balls::get_pos, &down_blue);
-	ros::Subscriber red_sub2 = n.subscribe("/red_tf2", 1, &msgCallback_balls::get_pos, &down_red);
+	// ros::Subscriber blue_sub2 = n.subscribe("/blue_tf2", 1, &msgCallback_balls::get_pos, &down_blue);
+	// ros::Subscriber red_sub2 = n.subscribe("/red_tf2", 1, &msgCallback_balls::get_pos, &down_red);
 
     // ------------------------------------------------------------------------------------
 
@@ -231,8 +229,8 @@ int main(int argc, char **argv)
         int cx, cy;
         for (int i=0; i<lidar_size; i++)
         {
-            obstacle_x = lidar_distance[i]*cos(lidar_degree[i]);
-            obstacle_y = lidar_distance[i]*sin(lidar_degree[i]);
+            obstacle_x = lidar_x[i];
+            obstacle_y = lidar_y[i];
 
             cx = MAP_WIDTH/2 - (int)(obstacle_y/MAP_RESOL);
             cy = MAP_HEIGHT - (int)(obstacle_x/MAP_RESOL);
@@ -283,30 +281,30 @@ int main(int argc, char **argv)
         //               -1);
         // Boundary
         cv::rectangle(map,
-                      cv::Point(((MAP_WIDTH/2) - R_X)*scale_up_size - 1, (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size + 1),
-                      cv::Point(((MAP_WIDTH/2) + R_X)*scale_up_size, (MAP_HEIGHT - (BACK_DISTANCE - R_Y))*scale_up_size - 1),
+                      cv::Point(((MAP_WIDTH/2) - R_X)*scale_up_size , (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size),
+                      cv::Point(((MAP_WIDTH/2) + R_X)*scale_up_size + 3, (MAP_HEIGHT - (BACK_DISTANCE - R_Y))*scale_up_size - 1),
                       cv::Scalar(robot_padding_color),
                       -1);
 
         // Roller
         cv::rectangle(map,
-                      cv::Point(((MAP_WIDTH/2) - C_X)*scale_up_size - 1, (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size + 1),
-                      cv::Point(((MAP_WIDTH/2) + C_X)*scale_up_size, (MAP_HEIGHT - (BACK_DISTANCE + R_Y - C_Y))*scale_up_size - 1),
+                      cv::Point(((MAP_WIDTH/2) - C_X)*scale_up_size , (MAP_HEIGHT - 1 - (BACK_DISTANCE + R_Y))*scale_up_size),
+                      cv::Point(((MAP_WIDTH/2) + C_X)*scale_up_size + 3, (MAP_HEIGHT - (BACK_DISTANCE + R_Y - C_Y))*scale_up_size),
                       cv::Scalar(robot_roller_color),
                       -1);
 
         // Centor sort plate state
         if(sort_state == RED){
             cv::rectangle(map,
-                      cv::Point((MAP_WIDTH/2)*scale_up_size - 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
-                      cv::Point((MAP_WIDTH/2)*scale_up_size + 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 3),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size , (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size + 3, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 2),
                       cv::Scalar(robot_red),
                       -1);
         }
         else{
             cv::rectangle(map,
-                      cv::Point((MAP_WIDTH/2)*scale_up_size - 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
-                      cv::Point((MAP_WIDTH/2)*scale_up_size + 1, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 3),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size , (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 1),
+                      cv::Point((MAP_WIDTH/2)*scale_up_size + 3, (MAP_HEIGHT - 1 - BACK_DISTANCE)*scale_up_size + 2),
                       cv::Scalar(robot_blue),
                       -1);
         }
@@ -328,6 +326,30 @@ int main(int argc, char **argv)
         // }
 
         cv::imencode(".jpg", map, msg.data);
+
+        //for test matching with dqn simul
+        //-----------------------------------------------------------------------------
+        int resize_size = 10;
+        cv::Mat test = cv::Mat::zeros(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size, CV_8UC1);
+        cv::resize(map,test,cv::Size(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size),0,0, 0);
+
+        for(int i =1; i<MAP_WIDTH*scale_up_size; i++){
+            cv::line(test,
+                    cv::Point(i*scale_up_size * resize_size, 0),
+                    cv::Point(i*scale_up_size * resize_size, MAP_WIDTH*scale_up_size * resize_size),
+                    cv::Scalar(128), 1, 8);
+            cv::line(test,
+                    cv::Point(0 , i*scale_up_size * resize_size),
+                    cv::Point(MAP_WIDTH*scale_up_size * resize_size, i*scale_up_size * resize_size),
+                    cv::Scalar(128), 1, 8);
+
+        }
+
+        cv::imshow("Frame", test);
+        if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
+            return 0;
+        }
+        //-----------------------------------------------------------------------------
 
         pub.publish(msg);
 

@@ -21,13 +21,13 @@ dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTens
 
 rospack = rospkg.RosPack()
 root = rospack.get_path('dqn')
-path = root+"/src/nuelnetwork/DQN_net1126 - Copy.pt"
+path = root+"/src/DQN_net1128 - pm934.pt"
 
 if torch.cuda.is_available():
     test_model = torch.load(path)
 else:
     test_model=torch.load(path, map_location='cpu')
-print('DQN_net1126 - Copy.pt was loaded')
+print('DQN_net1128 - pm934.pt was loaded')
 
 
 input_image = np.zeros((input_number,img_rows,img_cols), np.uint8)
