@@ -365,7 +365,7 @@ class Task:
         # Text (New)
         cv2.putText(frame_debug,
                     "Step " + str(self.iter),
-                    (int(simulator["width"]*debug_scale*0.65), int(simulator["width"]*debug_scale*0.05)),
+                    (int(simulator["width"]*debug_scale*0.70), int(simulator["width"]*debug_scale*0.05)),
                     cv2.FONT_HERSHEY_TRIPLEX,
                     0.05*debug_scale,
                     (255, 255, 255))
