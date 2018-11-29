@@ -144,9 +144,9 @@ int main(int argc, char **argv)
         cvtColor(calibrated_frame, hsv_frame, cv::COLOR_BGR2HSV);
 
         // threshold hsv values of red, blue and green from the hsv_frame
-        inRange(hsv_frame,Scalar(0,150,0),Scalar(10,255,255),hsv_frame_red1);
-        inRange(hsv_frame,Scalar(165,150,0),Scalar(185,255,255),hsv_frame_red2);
-        inRange(hsv_frame,Scalar(100,150,0),Scalar(130,255,255),hsv_frame_blue);
+        inRange(hsv_frame,Scalar(low_h_r,low_s_r,low_v_r),Scalar(high_h_r,high_s_r,high_v_r),hsv_frame_red1);
+        inRange(hsv_frame,Scalar(low_h2_r,low_s_r,low_v_r),Scalar(high_h2_r,high_s_r,high_v_r),hsv_frame_red2);
+        inRange(hsv_frame,Scalar(low_h_b,low_s_b,low_v_b),Scalar(high_h_b,high_s_b,high_v_b),hsv_frame_blue);
 
         // weighted sum of low range and high range red
         addWeighted(hsv_frame_red1, 1.0, hsv_frame_red2, 1.0, 0.0, hsv_frame_red);

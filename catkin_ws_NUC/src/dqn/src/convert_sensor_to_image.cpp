@@ -329,26 +329,27 @@ int main(int argc, char **argv)
 
         //for test matching with dqn simul
         //-----------------------------------------------------------------------------
-        int resize_size = 10;
-        cv::Mat test = cv::Mat::zeros(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size, CV_8UC1);
-        cv::resize(map,test,cv::Size(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size),0,0, 0);
+        // int resize_size = 5;
+        // cv::Mat test = cv::Mat::zeros(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size, CV_8UC1);
+        // cv::resize(map,test,cv::Size(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size),0,0, 0);
 
-        for(int i =1; i<MAP_WIDTH*scale_up_size; i++){
-            cv::line(test,
-                    cv::Point(i*scale_up_size * resize_size, 0),
-                    cv::Point(i*scale_up_size * resize_size, MAP_WIDTH*scale_up_size * resize_size),
-                    cv::Scalar(128), 1, 8);
-            cv::line(test,
-                    cv::Point(0 , i*scale_up_size * resize_size),
-                    cv::Point(MAP_WIDTH*scale_up_size * resize_size, i*scale_up_size * resize_size),
-                    cv::Scalar(128), 1, 8);
+        // for(int i =1; i<MAP_WIDTH*scale_up_size; i++){
+        //     cv::line(test,
+        //             cv::Point(i*scale_up_size * resize_size, 0),
+        //             cv::Point(i*scale_up_size * resize_size, MAP_WIDTH*scale_up_size * resize_size),
+        //             cv::Scalar(128), 1, 8);
+        //     cv::line(test,
+        //             cv::Point(0 , i*scale_up_size * resize_size),
+        //             cv::Point(MAP_WIDTH*scale_up_size * resize_size, i*scale_up_size * resize_size),
+        //             cv::Scalar(128), 1, 8);
 
-        }
+        // }
 
-        cv::imshow("Frame", test);
-        if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
-            return 0;
-        }
+        // cv::imshow("Frame", test);
+        // cv::waitKey(1);
+        // if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
+        //     return 0;
+        // }
         //-----------------------------------------------------------------------------
 
         pub.publish(msg);
@@ -357,7 +358,7 @@ int main(int argc, char **argv)
         // if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
         //     return 0;
         // }
-        ros::Duration(0.7).sleep();
+        ros::Duration(0.5).sleep();
         ros::spinOnce();
     }
 
