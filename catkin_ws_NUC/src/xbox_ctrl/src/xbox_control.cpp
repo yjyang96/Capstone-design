@@ -101,14 +101,18 @@ int main(int argc, char **argv) {
 		vy = sin(data[0]) * data[1];
 		wz = cos(data[2]) * data[3];
 
-		motor[0] = vx + vy - wz; //right back
-		motor[1] = vx - vy - wz; //left back
-		motor[2] = vx + vy + wz; //left front
-		motor[3] = vx - vy + wz; //right front
-		motor[0] *= 60;
-		motor[1] *= 60;
-		motor[2] *= 60;
-		motor[3] *= 60;
+
+		ROS_INFO("vx: %.2f vy: %.2f wz: %.2f", vx,vy,wz);
+		motor[0] = vx + vy - wz * 0.64; //right back
+		motor[1] = vx - vy - wz * 0.64; //left back
+		motor[2] = vx + vy + wz * 0.64; //left front
+		motor[3] = vx - vy + wz * 0.64; //right front
+
+		for(int i = 0; i < 4; i++){
+			motor[i] *= 60 * (40.0/15.0); //  60 for round per min 40/15 for gear ratio
+			motor[i] /= 0.075 * 2 * M_PI;  //0.075 for  radius, 2pi for radian to round
+			motor[i] /= 6; // 6 for my mind, just constant we need to modify
+		}
 
 		//for motor recalibration
 		motor[2] = -motor[2];
@@ -124,10 +128,10 @@ int main(int argc, char **argv) {
 			motor_max = motor_max > motor_abs[i] ? motor_max : motor_abs[i];
 		}
 
-		if(motor_max > 60){
+		if(motor_max > 45){
 			for(int i = 0; i < 4; i++){
 				motor[i] /= motor_max;
-				motor[i] *= 60;
+				motor[i] *= 45;
 			}
 		}
 
@@ -146,9 +150,13 @@ int main(int argc, char **argv) {
 			printf("dump_state %d\n", dump_state);
 		}
 
+		ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
 		write(c_socket, &tcp_message, sizeof(tcp_message));
 
-		ros::Duration(0.05).sleep();
+		if(button[0] || button[1]){
+			ros::Duration(1).sleep();
+		}
+		ros::Duration(1).sleep();
 	}
 	tcp_message.state = 6;
 	for(int i = 0; i < 4; i++){

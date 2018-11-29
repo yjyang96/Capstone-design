@@ -50,16 +50,15 @@ class rl_dqn_network:
         input_image[3]=cv_image
         image = torch.from_numpy(input_image).type(dtype).unsqueeze(0)/255.0
         action =torch.IntTensor([[test_model(image).data.max(1)[1].cpu()]])[0,0]
-        print('publishing action is ',action.item()) 
 
         action_msg = Int8(int(action.item()))
-        print(action_msg)
+        # rospy.loginfo('publishing action is %d',action.item())
         self.action_pub.publish(action_msg)
 
 
 def main(args):
     rospy.init_node('rl_dqn_network', anonymous=False)
-    rate = rospy.Rate(2)    
+    rate = rospy.Rate(0.5)    
     rl = rl_dqn_network()
 
     # rospy.init_node('rl_dqn_network', anonymous=False)

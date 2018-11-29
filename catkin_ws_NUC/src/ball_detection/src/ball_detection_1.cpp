@@ -23,8 +23,8 @@ int low_h_r=0, low_s_r=100, low_v_r=136;
 int high_h_r=10, high_s_r=255, high_v_r=255;
 
 // high and low for blue
-int low_h_b=110, low_s_b=100, low_v_b=100;
-int high_h_b=130, high_s_b=255, high_v_b=255;
+int low_h_b=105, low_s_b=100, low_v_b=100;
+int high_h_b=135, high_s_b=255, high_v_b=255;
 
 // function declaration for intToString and floatToString
 string intToString(int n);
