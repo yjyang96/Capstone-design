@@ -21,7 +21,7 @@ dtype = torch.cuda.FloatTensor if torch.cuda.is_available() else torch.FloatTens
 
 rospack = rospkg.RosPack()
 root = rospack.get_path('dqn')
-path = root+"/src/DQN_net1128 - pm934.pt"
+path = root+"/src/nuelnetwork/DQN_net1128 - pm934.pt"
 
 if torch.cuda.is_available():
     test_model = torch.load(path)
@@ -42,8 +42,8 @@ class rl_dqn_network:
         cv_image = cv2.imdecode(np_arr ,cv2.IMREAD_GRAYSCALE )
         # print(data.data.size)
 
-        cv2.imshow("Image window", cv_image)
-        cv2.waitKey(3)
+        # cv2.imshow("Image window", cv_image)
+        # cv2.waitKey(3)
         input_image[0]=input_image[1]
         input_image[1]=input_image[2]
         input_image[2]=input_image[3]
@@ -58,9 +58,9 @@ class rl_dqn_network:
 
 
 def main(args):
-    rl = rl_dqn_network()
     rospy.init_node('rl_dqn_network', anonymous=False)
-    rate = rospy.Rate(10)    
+    rate = rospy.Rate(2)    
+    rl = rl_dqn_network()
 
     # rospy.init_node('rl_dqn_network', anonymous=False)
     rospy.spin()
