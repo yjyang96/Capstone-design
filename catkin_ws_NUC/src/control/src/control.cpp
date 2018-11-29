@@ -321,6 +321,12 @@ int goal_status = 0;
 void get_goal_status(const actionlib_msgs::GoalStatusArray::ConstPtr& msg)                      //Receive topic /cmd_vel and write data[24] to send via TCP/IP
 {
 	goal_status = msg->status_list.front().status;
+
+    // Check if any status is 3. If so, write it to goal_status ?
+    // for (auto const& i : msg->status_list) {
+    //     if (i.status == SUCCEEDED)
+    //         goal_status = SUCCEEDED;
+    // }
 }
 
 //-----------------------------------------------------------------------------------
