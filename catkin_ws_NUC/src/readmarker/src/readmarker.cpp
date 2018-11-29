@@ -88,7 +88,7 @@ void find_marker(Mat frame)                   //Function which will run when the
 
       for(int i=0;i<4;i++)                                                  //Process to find markers 1 through 4
       {
-        if(find(markerIds.begin(), markerIds.end(), i+1)!=markerIds.end())  //If there exist marker with index i+1
+        if(find(markerIds.begin(), markerIds.end(), i+1) != markerIds.end())  //If there exist marker with index i+1
         {
           indice[i]= distance(markerIds.begin(), find(markerIds.begin(), markerIds.end(), i+1)); //indice[i] = location of element 'i+1' in vector markerIds
         }
@@ -97,7 +97,7 @@ void find_marker(Mat frame)                   //Function which will run when the
       }
       for(int i=4;i<8;i++)                                                  //Process to find markers 5 through 8
       {
-        if(find(markerIds.begin(), markerIds.end(), i+1)!=markerIds.end())  //If there exist marker with index i+1
+        if(find(markerIds.begin(), markerIds.end(), i+1) != markerIds.end())  //If there exist marker with index i+1
         {
           indice[i]= distance(markerIds.begin(), find(markerIds.begin(), markerIds.end(), i+1));  //indice[i] = location of element 'i+1' in vector markerIds
         }

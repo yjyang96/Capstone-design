@@ -16,6 +16,8 @@ from torchvision import datasets, models, transforms
 import rospy, roslib, rospkg
 from std_msgs.msg import String
 
+from readmarker.msg import markerXY
+
 
 # CNN ------------------------------------------------------------------------------------------------------------------
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -27,7 +29,7 @@ data_T = transforms.Compose([#transforms.Resize(256),
 
 rospack = rospkg.RosPack()
 root = rospack.get_path('cnn_for_jetson')
-path = root+"/src/nuelnetwork/CNN_dogcat0810.pt"
+path = root + "/src/nuelnetwork/CNN_dogcat0810.pt"
 
 
 if torch.cuda.is_available():
@@ -43,82 +45,107 @@ outImageCorners = [(0.0, 0.0),
                    (255.0, 255.0),
                    (0.0, 255.0)]
 
-image_1 = np.zeros((224, 224, 3), dtype=np.uint8)  # np.uint8, cv2.CV_8UC1 (Not sure)
-image_1[:] = (255, 255, 255)
-image_2 = np.zeros((224, 224, 3), dtype=np.uint8)
-image_2[:] = (255, 255, 255)
-
-b_image1 = True  # image 1 available
-b_image2 = True  # image 2 available
-
-indice = np.zeros(8)
-
 
 def main(args):
+    print('Start')
     rospy.init_node('catdog_cnn', anonymous=False)
+
+    pub_cnn = rospy.Publisher('catdog/String', String, queue_size=1)
+    pub_marker = rospy.Publisher('/markerXY', markerXY, queue_size=1)  # queue_size = ?
 
     # On versions of L4T previous to L4T 28.1, flip-method=2
     # Use the Jetson onboard camera
-    cap = cv2.VideoCapture("nvcamerasrc ! video/x-raw(memory:NVMM), width=(int)1280, height=(int)720,format=(string)I420, framerate=(fraction)30/1 ! nvvidconv flip-method=0 ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink")
-    pub = rospy.Publisher('catdog/String', String, queue_size=1)
+    # cap = cv2.VideoCapture("nvcamerasrc ! video/x-raw(memory:NVMM), width=(int)1280, height=(int)720,format=(string)I420, framerate=(fraction)30/1 ! nvvidconv flip-method=0 ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink")
+    cap = cv2.VideoCapture(0);
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
+    image_1 = np.zeros((224, 224, 3), dtype=np.uint8)  # np.uint8, cv2.CV_8UC1 (Not sure)
+    image_2 = np.zeros((224, 224, 3), dtype=np.uint8)
+    indice = np.zeros(8)
 
     if cap.isOpened():
         while True:
             ret_val, frame = cap.read()
             cv2.imshow('jetson image', frame)
             
-            # Frame processing routine ---------------------------------------------------------------------------------
+            # readmarker routine ---------------------------------------------------------------------------------------
+            marker = markerXY()
+
+            b_image1 = True  # image 1 available
+            b_image2 = True  # image 2 available
+
+            marker1X = [float('nan'), float('nan'), float('nan'), float('nan')]
+            marker1Y = [float('nan'), float('nan'), float('nan'), float('nan')]
+            marker2X = [float('nan'), float('nan'), float('nan'), float('nan')]
+            marker2Y = [float('nan'), float('nan'), float('nan'), float('nan')]
+            
             # For debugging
-            print(type(frame))
+            print('type(frame)', type(frame))
             rows, cols, channels = frame.shape
             print('frame.shape', rows, cols, channels)
 
-            inputImage = np.array(frame)
-            outputImage = np.copy(inputImage)
-
-            markerCorners, markerIds, rejectedImgPoints = cv2.aruco.detectMarkers(inputImage, cv2.aruco.DICT_6X6_250)
+            markerCorners, markerIds, rejectedImgPoints = cv2.aruco.detectMarkers(frame, cv2.aruco.DICT_6X6_250)
+            
+            outputImage = np.copy(frame)
+            image_1[:] = (255, 255, 255)
+            image_2[:] = (255, 255, 255)
 
             # For debugging
             print('type(markerCorners)', type(markerCorners))
+            print('type(markerIds)', type(markerIds))  # I guess array type
 
-            if len(markerIds):
+            if markerIds.size > 0:
                 cv2.aruco.drawDetectedMarkers(outputImage, markerCorners, markerIds)
                 indice[:] = 0
 
                 for i in range(0, 4):
-                    temp = np.where(markerIds == i + 1)[0]
-                    if temp != len(markerIds) - 1:
-                        indice[i] = temp
+                    if i+1 in markerIds:  # Future warnning
+                        indice[i] = np.where(markerIds == i+1)[0]
                     else:
                         b_image1 = False
+                
                 for i in range(4, 8):
-                    temp = np.where(markerIds == i + 1)[0]
-                    if temp != len(markerIds) - 1:
-                        indice[i] = temp
+                    if i+1 in markerIds:
+                        indice[i] = np.where(markerIds == i+1)[0]
                     else:
                         b_image2 = False
 
                 if b_image1:
-                    innerMarkerCorners = [markerCorners[indice[0]][2],
-                                          markerCorners[indice[1]][3],
-                                          markerCorners[indice[2]][0],
-                                          markerCorners[indice[3]][1]]
+                    innerMarkerCorners = np.array([markerCorners[indice[0]][2],
+                                                   markerCorners[indice[1]][3],
+                                                   markerCorners[indice[2]][0],
+                                                   markerCorners[indice[3]][1]])
+                    for i in range(4):
+                        marker1X[i], marker1Y[i] = innerMarkerCorners[i]
 
                     H1, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_1 = cv2.warpPerspective(inputImage, H1, (224, 224))
+                    image_1 = cv2.warpPerspective(frame, H1, (224, 224))
 
                 if b_image2:
-                    innerMarkerCorners = [markerCorners[indice[4]][2],
-                                          markerCorners[indice[5]][3],
-                                          markerCorners[indice[6]][0],
-                                          markerCorners[indice[7]][1]]
+                    innerMarkerCorners = np.array([markerCorners[indice[4]][2],
+                                                   markerCorners[indice[5]][3],
+                                                   markerCorners[indice[6]][0],
+                                                   markerCorners[indice[7]][1]])
+                    for i in range(4):
+                        marker2X[i], marker2Y[i] = innerMarkerCorners[i]
 
                     H2, mask = cv2.findHomography(innerMarkerCorners, outImageCorners, 0)
-                    image_2 = cv2.warpPerspective(inputImage, H2, (224, 224))
+                    image_2 = cv2.warpPerspective(frame, H2, (224, 224))
             else:
                 b_image1 = False
                 b_image2 = False
-            # End of frame processing routine --------------------------------------------------------------------------
+            
+            marker.stamp = 0
+            marker.width = width
+            marker.height = height
+            marker.marker1X = marker1X
+            marker.marker1Y = marker1Y
+            marker.marker2X = marker2X
+            marker.marker2Y = marker2Y
+
+            pub_marker.publish(marker)
+            # End of readmarker routine --------------------------------------------------------------------------------
 
             # Here in cpp file we convert image_1 & image_2 to text and publish
             # We can instead just continue processing here (Feeding to CNN network)
@@ -149,7 +176,7 @@ def main(args):
                 # pub = rospy.Publisher('catdog/String', String, queue_size=1)
                 for x in ['cat', 'dog']:
                     if x == ['cat', 'dog'][preds]:
-                        pub.publish(x)
+                        pub_cnn.publish(x)
                         if num == 1:
                             print('first image is ', x)
                         else:
