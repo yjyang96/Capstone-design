@@ -8,7 +8,7 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 
-from readmarker.msg import markermsg 
+from core_msgs.msg import markermsg 
 
 import cv2
 import rospy, roslib, rospkg

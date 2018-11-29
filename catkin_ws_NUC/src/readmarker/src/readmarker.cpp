@@ -11,8 +11,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/aruco.hpp>
 #include <std_msgs/Int8.h>
-#include "readmarker/markermsg.h"                                          // ******************** REVIEW 4 *********************** //
-#include "readmarker/markerXY.h"                                           //Custom msg. See readermarker/msg/markerXY.msg
+#include "core_msgs/markermsg.h"                                          // ******************** REVIEW 4 *********************** //
+#include "core_msgs/markerXY.h"                                           //Custom msg. See readermarker/msg/markerXY.msg
 #include <math.h>
 
 using namespace cv;
@@ -35,8 +35,8 @@ int b_image2;                                                               //In
 ros::Publisher input_status_pub;                                            //Publisher to publish the message
 ros::Publisher cmd_target_pub;
 
-readmarker::markermsg cropped_img_msg;                                      //Message to be published containing the images, and booleans
-readmarker::markerXY cmd_target;                                            //Message to save the detected marker infomation
+core_msgs::markermsg cropped_img_msg;                                      //Message to be published containing the images, and booleans
+core_msgs::markerXY cmd_target;                                            //Message to save the detected marker infomation
 
 void Initialization()                                                       //Initialization function
 {
@@ -179,8 +179,8 @@ int main(int argc, char** argv)
   Initialization();                                                             //Initialize the parameters
   ros::init(argc, argv, "marker_reader");                                       //Initialize the node "marker_reader"
   ros::NodeHandle nh;                                                           //Set the node handle as nh
-  input_status_pub = nh.advertise<readmarker::markermsg>("cropped_img", 100);   //Declare publisher using the message file 'marekermsg'
-  cmd_target_pub = nh.advertise<readmarker::markerXY>("markerXY", 100);         //Declare publisher using the message file 'marekermsg'
+  input_status_pub = nh.advertise<core_msgs::markermsg>("cropped_img", 100);   //Declare publisher using the message file 'marekermsg'
+  cmd_target_pub = nh.advertise<core_msgs::markerXY>("markerXY", 100);         //Declare publisher using the message file 'marekermsg'
 
 
   VideoCapture cap = cv::VideoCapture(0);

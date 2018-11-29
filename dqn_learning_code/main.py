@@ -43,7 +43,7 @@ def main(env):
 
 if __name__ == '__main__':
 
-    env = simulator.Task(debug_flag=False, test_flag=False, state_blink=True, state_inaccurate=False)
+    env = simulator.Task(debug_flag=False, test_flag=False, state_blink=True, state_inaccurate=True)
     main(env)
 
 

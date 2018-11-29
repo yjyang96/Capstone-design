@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   geometry_msgs
   core_msgs
+  tf
 )
 
 
