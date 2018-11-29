@@ -1,4 +1,0 @@
-int32 image1_available
-int32 image2_available
-sensor_msgs/CompressedImage cimage1
-sensor_msgs/CompressedImage cimage2

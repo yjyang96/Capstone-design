@@ -11,6 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   geometry_msgs
+  actionlib
+  geometry_msgs
+  core_msgs
+  tf
 )
 
 

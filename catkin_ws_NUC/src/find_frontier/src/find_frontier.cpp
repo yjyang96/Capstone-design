@@ -329,6 +329,7 @@ void mapConvert(const nav_msgs::OccupancyGrid::ConstPtr& msg){
   marker_pub.publish(cluster_points);
   points.points.clear();
   cluster_points.points.clear();
+  ROS_INFO("Sending frontier");
 }
 
 void PoseUpdate(const geometry_msgs::PoseStampedConstPtr& pose)
