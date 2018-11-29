@@ -23,6 +23,9 @@
 #include <tf/transform_broadcaster.h>
 #include <geometry_msgs/PoseStamped.h>
 
+
+#include "core_msgs/markerXY.h"
+
 #define _USE_MATH_DEFINES
 
 #define PORT 4000
@@ -253,7 +256,7 @@ void get_scan(const sensor_msgs::PointCloud& points){
 	std::vector<geometry_msgs::Point32> positions;
 	int n = 20;
 	for(int i =0; i < points.points.size(); i++){
-		if(points.channels[1].values[i] >= 360 - n && points.channels[1].values[i] <= n){ //use front scan data
+		if(points.channels[1].values[i] <= n || points.channels[1].values[i] >= 360 - n){ //back is 0 degree
 			positions.push_back(points.points[i]);
 		}
 	}
@@ -264,14 +267,17 @@ void get_scan(const sensor_msgs::PointCloud& points){
 	float xy = 0;
 	float xx = 0;
 	for(int i =0; i<positions.size();i++){
-		x += positions[i].x;
-		y += positions[i].y;
-		xy += positions[i].x * positions[i].y;
-		xx += positions[i].x * positions[i].x;
+		// -------------------------------------------------------------------------
+		// i change x,y because cord of xy is change between capstone 1 and 2
+		x += positions[i].y;
+		y += positions[i].x;
+		xy += positions[i].y * positions[i].x;
+		xx += positions[i].y * positions[i].y;
+		// -------------------------------------------------------------------------
 	}
 
-	coeffi[0] = ((2*n + 1) * xy - x * y)/((2*n+1)*xx - x*x);
-	coeffi[1] = (xx*y-x*xy)/((2*n+1)*xx-x*x);
+	coeffi[0] = (float(positions.size()) * xy - x * y)/(float(positions.size())*xx - x*x);
+	coeffi[1] = (xx*y-x*xy)/(float(positions.size())*xx-x*x);
 
 	is_new_coeffi = true;
 	// std::cout<<coeffi[0]<<"       "<<coeffi[1]<<"\n";
@@ -317,6 +323,55 @@ void get_goal_status(const actionlib_msgs::GoalStatusArray::ConstPtr& msg)      
 }
 
 //-----------------------------------------------------------------------------------
+//for CNN
+Rio_State is_catdog;
+void msgCallback_iscatdog(const std_msgs::Int8::ConstPtr& action) 
+{
+	switch(action->data){
+		case 0:
+			is_catdog = DUMP_LEFT;
+			break;
+		case 1:
+			is_catdog = DUMP_RIGHT;
+			break;
+		default:
+			ROS_INFO("no case for catdog");
+			break;
+	}
+}
+
+float markerX_mid = NAN;
+float markerX_diff = NAN;  // 22.5 at start point, 110 at close goal
+void msgCallback_markerXY(const core_msgs::markerXY::ConstPtr& msg){
+
+	//only NAN == NAN is false
+	if(msg->marker1X[0] == msg->marker1X[0]){
+		markerX_mid = 0;
+		markerX_diff = 0;
+		for(int i = 0 ; i<4; i++){
+			markerX_mid += msg->marker1X[i];
+			markerX_diff += (i == 1 || i == 2) ? msg->marker1X[i] : -(msg->marker1X[i]);
+		}
+		markerX_mid /= 4;
+		markerX_diff /= 4;
+	}
+	else if(msg->marker2X[0] == msg->marker2X[0]){
+		markerX_mid = 0;
+		markerX_diff = 0;
+		for(int i = 0 ; i<4; i++){
+			markerX_mid += msg->marker2X[i];
+			markerX_diff += (i == 1 || i == 2) ? msg->marker2X[i] : -(msg->marker2X[i]);
+		}
+		markerX_mid /= 4;
+		markerX_diff /= 4;
+	}
+	else{
+		markerX_mid = NAN;
+		markerX_diff = NAN;
+	}
+
+}
+//--------------------------------------------------------------------------------------
 
 
 
@@ -334,7 +389,10 @@ int main(int argc, char **argv)
     
 	ros::Subscriber action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
 	// action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
-	curr_state = FIND_FRONTIER;
+	ros::Subscriber dump_catdog = nh.subscribe("/iscatdog/int8", 1, msgCallback_iscatdog);
+	ros::Subscriber markerXY_sub = nh.subscribe("/markerXY", 1, msgCallback_markerXY);
+	// curr_state = FIND_FRONTIER;
+	curr_state = GO_RIGHT_GOAL_MARKER;
 
 	msgCallback_balls upper_blue(UP, BLUE);
 	msgCallback_balls upper_red(UP, RED);
@@ -343,6 +401,9 @@ int main(int argc, char **argv)
 	ros::Subscriber red_sub = nh.subscribe("/red_tf", 1, &msgCallback_balls::get_pos, &upper_red);
 
 	ros::Subscriber slam_out_pose = nh.subscribe("/slam_out_pose", 2, get_robot_pos);
+
+	ros::Subscriber scan_sub = nh.subscribe("scan_points", 1, &get_scan);
+
 
 	// socket open start
 	c_socket = socket(PF_INET, SOCK_STREAM, 0);
@@ -429,53 +490,91 @@ int main(int argc, char **argv)
 				sendRioMessage();
 				break;
 			}
-			case GO_RIGHT_GOAL_MARKER:{
+			case GO_RIGHT_GOAL_MARKER:
+			case GO_LEFT_GOAL_MARKER:{
+				//escape didn't get message
+				//only NAN != NAN is ture
+				if(markerX_diff != markerX_diff){
+					break;
+				}
+				init_send_data();
+				ROS_INFO("2   mid %.2f, diff %.2f", markerX_mid, markerX_diff);
+				if(markerX_mid < 340 && markerX_mid > 300){
+					if(markerX_diff > 80){
+						curr_state = (curr_state == GO_RIGHT_GOAL_MARKER) ? GO_RIGHT_GOAL_LIDAR : GO_LEFT_GOAL_LIDAR;
+					}
+					else{
+						send_data.vy = -0.1;
+					}
+				}
+				else{
+					if(markerX_diff > 80){
+						send_data.vx = markerX_mid - 320 > 0 ? -0.05 : 0.05;
+					}
+					else{
+						send_data.vy = -0.1;
+						send_data.vx = markerX_mid - 320 > 0 ? -0.05 : 0.05;
+					}
+				}
+				markerX_diff = NAN;
+				markerX_mid = NAN;
+				sendRioMessage();
 				break;
 			}
 			case GO_STARTPOS_AGAIN:{
 				break;
 			}
-			case GO_LEFT_GOAL_MARKER:{
-				break;
-			}
 			case GO_RIGHT_GOAL_LIDAR:
 			case GO_LEFT_GOAL_LIDAR:{
-				if(is_new_coeffi){
-					init_send_data();
-					if(coeffi[0] > - 0.1 && coeffi[0] < 0.1){
-						if(coeffi[1] > 0.37 && coeffi[1] < 0.38){
-							curr_state = (curr_state == GO_RIGHT_GOAL_LIDAR) ? DROP_RIGHT : DROP_LEFT;
-						}
-						else{
-							send_data.vy = coeffi[1] - 0.375 > 0 ? 0.2 : -0.2;
-						}
+				if(!is_new_coeffi){
+					break;
+				}
+
+				ROS_INFO("slop %.2f, dist %.2f", coeffi[0], coeffi[1]);
+				init_send_data();
+				if(-0.1 < coeffi[0]  && coeffi[0] < 0.1){
+					if(-0.47 < coeffi[1]  && coeffi[1] < -0.44){
+						ROS_INFO("DROP");
+						curr_state = (curr_state == GO_RIGHT_GOAL_LIDAR) ? DROP_RIGHT : DROP_LEFT;
 					}
 					else{
-						if(coeffi[1] > 0.37 && coeffi[1] < 0.38){
-							send_data.wz = coeffi[0] > 0 ? -0.1 : 0.1;
-						}
-						else{
-							send_data.vy = coeffi[1] - 0.375 > 0 ? 0.2 : -0.2;
-							send_data.wz = coeffi[0] > 0 ? -0.1 : 0.1;
-						}
+						send_data.vy = coeffi[1] + 0.455 > 0 ? 0.05 : -0.05;
 					}
-					is_new_coeffi = false;
-					sendRioMessage();
 				}
+				else{
+					if(-0.47 < coeffi[1]  && coeffi[1] < -0.44){
+						send_data.wz = coeffi[0] > 0 ? 0.05 : -0.05;
+					}
+					else{
+						send_data.vy = coeffi[1] + 0.455 > 0 ? 0.05 : -0.05;
+						send_data.wz = coeffi[0] > 0 ? 0.05 : -0.05;
+					}
+				}
+				is_new_coeffi = false;
+				sendRioMessage();
 				break;
 			}
 			case DROP_RIGHT:
 			case DROP_LEFT:{
 				init_send_data();
+				send_data.state = is_catdog;
+				sendRioMessage();
+				ROS_INFO("dump start");
+				ros::Duration(5).sleep();
+				ROS_INFO("dump end");
 				if (curr_state == DROP_RIGHT){
-					send_data.state = DUMP_LEFT;
+					init_send_data();
+					send_data.state = DUMP_MID;
+					sendRioMessage();
 					curr_state = GO_STARTPOS_AGAIN;
 				}
 				else{
-					send_data.state = DUMP_RIGHT;
+					//end
+					init_send_data();
+					send_data.state = DUMP_MID;
+					sendRioMessage();
+					ros::shutdown();
 				}
-				sendRioMessage();
-				ros::Duration(5).sleep();
 				break;
 			}
 			default:{

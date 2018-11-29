@@ -14,11 +14,10 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   std_msgs
-  message_generation
+  core_msgs
 )
 find_package( OpenCV REQUIRED )
 
-add_message_files(FILES markermsg.msg markerXY.msg)
 generate_messages(DEPENDENCIES std_msgs sensor_msgs)
 
 catkin_package(

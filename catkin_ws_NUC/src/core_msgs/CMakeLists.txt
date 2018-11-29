@@ -12,6 +12,7 @@ add_message_files( DIRECTORY msg
   ball_position.msg
   direction.msg
   markermsg.msg
+  markerXY.msg
   multiarray.msg
 )
 
