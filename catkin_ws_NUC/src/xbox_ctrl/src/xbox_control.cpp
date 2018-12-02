@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
 		if(button[0] || button[1]){
 			ros::Duration(1).sleep();
 		}
-		ros::Duration(1).sleep();
+		ros::Duration(0.1).sleep();
 	}
 	tcp_message.state = 6;
 	for(int i = 0; i < 4; i++){

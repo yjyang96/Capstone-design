@@ -133,10 +133,11 @@ void sendRioMessage(float vx, float vy, float wz, Rio_State rio_state){
 
 	write(c_socket, &tcp_message, sizeof(tcp_message));
 	ready_flag = false;
-	ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
+	// ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
 
 }
 
+float mapping[3] = {0,0,0};
 void msgCallback_for_mapping(const geometry_msgs::Twist::ConstPtr& cmd_vel)                      //Receive topic /cmd_vel and write data[24] to send via TCP/IP
 {
 	//  in cmd_vel
@@ -149,16 +150,17 @@ void msgCallback_for_mapping(const geometry_msgs::Twist::ConstPtr& cmd_vel)     
     //     |           |
     //     +-----------+
 	//       <----- vy
-	init_send_data();
-    send_data.vx = -(cmd_vel->linear.y);
-    send_data.vy = cmd_vel->linear.x;
-    send_data.wz = -(cmd_vel->angular.z);
+	mapping[0] = -(cmd_vel->linear.y);
+    mapping[1] = cmd_vel->linear.x;
+    mapping[2]= -(cmd_vel->angular.z);
     // ROS_INFO("motor[0]: %.2f motor[1]: %.2f motor[2]: %.2f motor[3]: %.2f", motor[0], motor[1], motor[2], motor[3]);
-    ROS_INFO("linear_vel.x: %.2f linear_vel.y: %.2f augular_vel.z: %.2f", cmd_vel->linear.x, cmd_vel->linear.y, cmd_vel->angular.z);
+    ROS_INFO("linear_vel.x: %.2f linear_vel.y: %.2f augular_vel.z: %.2f", mapping[0], mapping[1], mapping[2]);
 }
 
 int blue_ball_remain = 3;
 int red_ball_remain = 3;
+float picking[3] = {0,0,0};
+int picking_state = 0;
 void msgCallback_for_picking(const std_msgs::Int8::ConstPtr& action) 
 {
 	//    
@@ -171,35 +173,38 @@ void msgCallback_for_picking(const std_msgs::Int8::ConstPtr& action)
     //     |           |
     //     +-----------+
 	//       -----> vx
-	init_send_data();
+	picking[0] = 0;
+	picking[1] = 0;
+	picking[2] = 0;
+	picking_state = 0;
 	ROS_INFO("signal %d", action->data);
 	switch(action->data){
 		case 0:  // forward
-			send_data.vy = 0.3;
+			picking[1] = 0.18;
 			break;
 		case 1: // right
-			send_data.vx = 0.45;
+			picking[0] = 0.18;
 			break;
 		case 2: // left
-			send_data.vx = -0.45;
+			picking[0] = -0.18;
 			break;
 		case 3: // turn right
-			send_data.wz = 0.80;
+			picking[2] = 0.18;
 			break;
 		case 4: // turn left
-			send_data.wz = -0.80;
+			picking[2] = -0.18;
 			break;
 		case 5: // forward and sorting to 
 		case 6: // forward and sorting to blue
-			send_data.vy = 0.3;
+			picking[1] = 0.18;
 			red_ball_remain--;
 			if(action->data == 5){
 				ROS_INFO("pick red");
-				send_data.state = SORT_RIGHT;
+				picking_state = SORT_RIGHT;
 			}
 			else{
 				ROS_INFO("pick blue");
-				send_data.state = SORT_LEFT;
+				picking_state = SORT_LEFT;
 			}
 			break;
 		default:
@@ -395,6 +400,7 @@ int main(int argc, char **argv)
 	ros::Subscriber goal_status_sub = nh.subscribe("/move_base/status",1, get_goal_status);
     
 	ros::Subscriber action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);                //Subscriber for the topic "/cmd_vel", "/action/int8" to operate the motor
+	ros::Subscriber picking_sub;
 	// ros::Subscriber action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
 	ros::Subscriber markerXY_sub;
 	// ros::Subscriber markerXY_sub = nh.subscribe("/markerXY", 1, msgCallback_markerXY);
@@ -402,6 +408,7 @@ int main(int argc, char **argv)
 	// ros::Subscriber dump_catdog = nh.subscribe("/iscatdog/int8", 1, msgCallback_iscatdog);
 	
 	curr_state = FIND_FRONTIER;
+	// curr_state = GO_STARTPOS;
 	// curr_state = PICK_BALL;
 
 	msgCallback_balls upper_blue(UP, BLUE);
@@ -414,6 +421,11 @@ int main(int argc, char **argv)
 
 	ros::Subscriber scan_sub;
 	// ros::Subscriber scan_sub = nh.subscribe("scan_points", 1, &get_scan);
+
+
+					// markerXY_sub = nh.subscribe("/markerXY", 1, msgCallback_markerXY);
+					// dump_catdog = nh.subscribe("/iscatdog/int8", 1, msgCallback_iscatdog);
+					// scan_sub = nh.subscribe("scan_points", 1, &get_scan);
 
 
 	// socket open start
@@ -444,7 +456,7 @@ int main(int argc, char **argv)
 		}
 		switch(curr_state){
 			case FIND_FRONTIER:{
-				if((balls_pos[UP_BLUE].size() + balls_pos[UP_RED].size() > 0  && robot_pos.position.x > 1.5) || robot_pos.position.x > 2.5){
+				if(balls_pos[UP_BLUE].size() + balls_pos[UP_RED].size() > 0  && robot_pos.position.x > 1.5){
 					//shutdown find_frontier_node
 					system("rosnode kill find_frontier_node");
 
@@ -452,36 +464,35 @@ int main(int argc, char **argv)
 					goal_cancle.publish(cancle_msg);
 					curr_state = PICK_BALL;
 					ROS_INFO("change state to PICK BALL");
-					action_sub.shutdown();
-					action_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
+					picking_sub = nh.subscribe("/action/int8", 1, msgCallback_for_picking);
 					init_send_data();
 				}
-				sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
+				sendRioMessage(mapping[0], mapping[1], mapping[2], NOTHING);
 				break;
 			}
 			case PICK_BALL:{
-				if (red_ball_remain == 0 && blue_ball_remain == 0){
-					sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
+				if ((red_ball_remain < 1 && blue_ball_remain < 1) || ( red_ball_remain + blue_ball_remain < -1)){
+					sendRioMessage(picking[0], picking[1], picking[2], (Rio_State)picking_state);
 					
 					ROS_INFO("start final picking");
 					//wait for final picking
-					ros::Duration(1.4).sleep();
+					ros::Duration(1.7).sleep();
 					
 					sendRioMessage(0,0,0,NOTHING);
-					action_sub.shutdown();
-					action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);
+					picking_sub.shutdown();
 					ROS_INFO("change state to GO_STARTPOS");
-					// curr_state = GO_STARTPOS;
+					curr_state = GO_STARTPOS;
 
 					//--------------------------------
-					// for debug dqn
-					curr_state = GO_STARTPOS_AGAIN;
+					// for debug dqn    FAIL
+					// curr_state = (Overall_State) -1;
+					break;
 				}
-				sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
+				sendRioMessage(picking[0], picking[1], picking[2], (Rio_State)picking_state);
 				ROS_INFO("remain ball %d", blue_ball_remain + red_ball_remain);
-				if(send_data.state == SORT_LEFT || send_data.state == SORT_RIGHT){
+				if((Rio_State)picking_state == SORT_LEFT || (Rio_State)picking_state == SORT_RIGHT){
 					ROS_INFO("pick something");
-					ros::Duration(1).sleep();
+					ros::Duration(1.3).sleep();
 				}
 				ros::Duration(0.4).sleep();
 				ROS_INFO("picking");
@@ -502,18 +513,22 @@ int main(int argc, char **argv)
 					markerXY_sub = nh.subscribe("/markerXY", 1, msgCallback_markerXY);
 					dump_catdog = nh.subscribe("/iscatdog/int8", 1, msgCallback_iscatdog);
 					scan_sub = nh.subscribe("scan_points", 1, &get_scan);
+					sendRioMessage(0, 0, 0, NOTHING);
+					ros::Duration(0.5).sleep();
+					break;
 				}
-				else{
+				ROS_INFO("pub goal");
+				if(state_debug == 0){
 					geometry_msgs::PoseStamped goal_position;
 					goal_position.header.frame_id = "map";
 					goal_position.header.stamp = ros::Time::now();
 					goal_position.pose.position.x = 0;
-					goal_position.pose.position.y = 0;
+					goal_position.pose.position.y = -0.5;
 					tf::Quaternion goal_orientation = tf::createQuaternionFromYaw(M_PI_2);
 					tf::quaternionTFToMsg(goal_orientation, goal_position.pose.orientation);
 					goal_pub.publish(goal_position);
 				}
-				sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
+				sendRioMessage(mapping[0], mapping[1], mapping[2], NOTHING);
 				break;
 			}
 			case GO_RIGHT_GOAL_MARKER:
@@ -521,6 +536,7 @@ int main(int argc, char **argv)
 				//escape didn't get message
 				//only NAN != NAN is ture
 				if(markerX_diff != markerX_diff){
+					sendRioMessage(0,0, 0.1, NOTHING);
 					break;
 				}
 				init_send_data();
@@ -556,20 +572,20 @@ int main(int argc, char **argv)
 				ROS_INFO("slop %.2f, dist %.2f", coeffi[0], coeffi[1]);
 				init_send_data();
 				if(-0.1 < coeffi[0]  && coeffi[0] < 0.1){
-					if(-0.47 < coeffi[1]  && coeffi[1] < -0.44){
+					if(-0.42 < coeffi[1]  && coeffi[1] < -0.39){
 						ROS_INFO("DROP");
 						curr_state = (curr_state == GO_RIGHT_GOAL_LIDAR) ? DROP_RIGHT : DROP_LEFT;
 					}
 					else{
-						send_data.vy = coeffi[1] + 0.455 > 0 ? 0.05 : -0.05;
+						send_data.vy = coeffi[1] + 0.405 > 0 ? 0.05 : -0.05;
 					}
 				}
 				else{
-					if(-0.47 < coeffi[1]  && coeffi[1] < -0.44){
+					if(-0.42 < coeffi[1]  && coeffi[1] < -0.39){
 						send_data.wz = coeffi[0] > 0 ? 0.05 : -0.05;
 					}
 					else{
-						send_data.vy = coeffi[1] + 0.455 > 0 ? 0.05 : -0.05;
+						send_data.vy = coeffi[1] + 0.405 > 0 ? 0.05 : -0.05;
 						send_data.wz = coeffi[0] > 0 ? 0.05 : -0.05;
 					}
 				}
@@ -584,16 +600,20 @@ int main(int argc, char **argv)
 				sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
 				ROS_INFO("dump start");
 				ros::Duration(5).sleep();
+				//for shake
+				sendRioMessage(0,0.1,0,NOTHING);
+				ros::Duration(0.1).sleep();
+				sendRioMessage(0,-0.1,0,NOTHING);
+				ros::Duration(0.1).sleep();
+				sendRioMessage(0,0,0,NOTHING);
+				ros::Duration(1).sleep();
+
 				ROS_INFO("dump end");
 				if (curr_state == DROP_RIGHT){
 					init_send_data();
 					sendRioMessage(0,0,0,DUMP_MID);
 					curr_state = GO_STARTPOS_AGAIN;
-					action_sub = nh.subscribe("/cmd_vel", 1, msgCallback_for_mapping);
 					goal_succese = false;
-					markerXY_sub.shutdown();
-					dump_catdog.shutdown();
-					scan_sub.shutdown();
 					ROS_INFO("go startpos again");
 				}
 				else{
@@ -605,33 +625,19 @@ int main(int argc, char **argv)
 				break;
 			}
 			case GO_STARTPOS_AGAIN:{
-				ROS_INFO("orientation %.2f", robot_pos.orientation.z);
-				if (robot_pos.position.y > 0.2 ){
-					sendRioMessage(0, -0.3, 0, NOTHING);
+				ROS_INFO("x %.2f y %.2f orientation %.2f", robot_pos.position.x, robot_pos.position.y, robot_pos.orientation.z);
+				if (robot_pos.position.y < 0.2 ){
+					sendRioMessage(0, 0.3, 0, NOTHING);
+					break;
+				}
+				else if (robot_pos.position.y <0.3){
+					sendRioMessage(0, 0.15, 0 , NOTHING);
 				}
 				else{
-					if (goal_succese){
-					actionlib_msgs::GoalID cancle_msg;
-					goal_cancle.publish(cancle_msg);
+					sendRioMessage(0, 0, 0.2 , NOTHING);
+					ros::Duration(1).sleep();
+					sendRioMessage(0, 0, 0, NOTHING);
 					curr_state = GO_LEFT_GOAL_MARKER;
-					ROS_INFO("change state to GO RIGHT GOAL MARKER");
-					action_sub.shutdown();
-					markerXY_sub = nh.subscribe("/markerXY", 1, msgCallback_markerXY);
-					dump_catdog = nh.subscribe("/iscatdog/int8", 1, msgCallback_iscatdog);
-					scan_sub = nh.subscribe("scan_points", 1, &get_scan);
-					}
-					else{
-						geometry_msgs::PoseStamped goal_position;
-						goal_position.header.frame_id = "map";
-						goal_position.header.stamp = ros::Time::now();
-						goal_position.pose.position.x = 0;
-						goal_position.pose.position.y = 0;
-						tf::Quaternion goal_orientation = tf::createQuaternionFromYaw(-M_PI_2);
-						tf::quaternionTFToMsg(goal_orientation, goal_position.pose.orientation);
-						goal_pub.publish(goal_position);
-					}
-					sendRioMessage(send_data.vx, send_data.vy, send_data.wz, send_data.state);
-
 				}
 				break;
 			}

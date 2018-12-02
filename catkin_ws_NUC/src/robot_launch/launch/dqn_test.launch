@@ -1,0 +1,8 @@
+<launch>
+    <include file="$(find rplidar_ros)/launch/rplidar.launch"/>
+    <include file="$(find find_frontier)/launch/hector_mapping.launch" />
+    <node pkg="tf_robot" type="tf_robot" name="tf_robot"/>
+    <node pkg="tf_ball" type="tf_ball" name="tf_ball"/>
+    <!-- <node pkg="ball_detection" type="ball_detect_node_1" name="ball_detect_node_1"/>
+    <node pkg="dqn" type="convert_sensor_to_image" name="convert_sensor_to_image"/> -->
+</launch>

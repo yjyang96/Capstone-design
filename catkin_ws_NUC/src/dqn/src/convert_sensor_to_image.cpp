@@ -327,8 +327,8 @@ int main(int argc, char **argv)
 
         cv::imencode(".jpg", map, msg.data);
 
-        //for test matching with dqn simul
-        //-----------------------------------------------------------------------------
+        // for test matching with dqn simul
+        // -----------------------------------------------------------------------------
         // int resize_size = 5;
         // cv::Mat test = cv::Mat::zeros(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size, CV_8UC1);
         // cv::resize(map,test,cv::Size(MAP_WIDTH*scale_up_size * resize_size, MAP_HEIGHT*scale_up_size * resize_size),0,0, 0);
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
         // if (cv::waitKey(50)==113) {  //wait for a key command. if 'q' is pressed, then program will be terminated.
         //     return 0;
         // }
-        //-----------------------------------------------------------------------------
+        // -----------------------------------------------------------------------------
 
         pub.publish(msg);
 
