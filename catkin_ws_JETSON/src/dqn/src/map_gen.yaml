@@ -1,0 +1,41 @@
+%YAML 1.0
+---
+#--------------------------------------------------------------------------------------------
+# Map Parameters
+#--------------------------------------------------------------------------------------------
+
+# Map Parameters
+Map.originH: 50.5
+Map.originV: 98.5
+
+Map.width: 100
+Map.height: 100
+Map.resolution: 0.05 # meter scale
+Map.obstacle.padding: 5
+Map.obstacle.connect_max: 15
+Map.monitor.resolution: 0.03 # meter scale
+
+Map.data.ball_track: 1
+Map.data.ball: 2
+Map.data.obstacle: 200
+Map.data.obstacle.padding: 150
+
+# RL Map Parameters
+RL.Map.width: 31
+RL.Map.height: 31
+RL.Map.center: 15
+RL.Map.resolution: 0.15 # meter scale
+RL.Map.obstacle.padding: 5
+RL.Map.obstacle.connect_max: 15
+
+RL.Map.data.ball: 255
+RL.Map.data.obstacle: 100
+RL.Map.data.robot: 200
+RL.Map.data.robot.padding: 150
+
+# Camera-Homography
+Camera.H:
+    [[-0.00254592, -0.297329673,   0.219879355],
+    [-0.335777288, -0.000457393, 0.01693678],
+    [0.0044878288, 0.95435493, 1.0]]
+

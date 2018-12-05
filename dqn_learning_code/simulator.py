@@ -19,11 +19,11 @@ map_param = {"width":50, "height":50, "center":25, "resol":1, "scale":5} # Size 
 non_detect = 7
 Back_pixels = 6
 margin = 6 ## MARGIN 
-ball_margin= 8
-Ran_wall=20 # random lengthen wall size (늘어난 벽의 길이)
+ball_margin = 8
+Ran_wall = 20 # random lengthen wall size (늘어난 벽의 길이)
 camera_fov = 78
-obstacle_base=2/5*map_param["height"] ## 
-obstacle_length=int(2/5*map_param["width"]) ##
+obstacle_base = 2/5*map_param["height"] ## 
+obstacle_length = int(2/5*map_param["width"]) ##
 ball_blind_ratio = 1/np.tan(camera_fov/2*np.pi/180)
 ball_blind_bias = 1
 
@@ -51,12 +51,13 @@ class Task:
         self.red_balls_prev = []
         self.blue_balls_prev = []
         self.obstacles = []
-        self.state_dis_cor=[]
-        self.state_dis_cen=[]
-        self.robots_cen=[] #center
-        self.robots_cor=[] #right above cor
+        self.state_dis_cor = []
+        self.state_dis_cen = []
+        self.robots_cen = [] #center
+        self.robots_cor = [] #right above cor
         # For ...
         self.episode_rewards = []
+        self.current_reward = 0
         self.score = 0
         self.iter = 0
         self.sorting_plate_state = sorting_plate_state_dic['RED']
@@ -88,12 +89,13 @@ class Task:
         self.blue_balls = []
         self.red_balls_prev = []
         self.blue_balls_prev = []
-        self.robots=[]
-        self.state_dis_cor=[]
-        self.state_dis_cen=[]
+        self.robots = []
+        self.state_dis_cor = []
+        self.state_dis_cen = []
         self.obstacles = []
-        self.robots_cen=[] #center
-        self.robots_cor=[] #right above cor
+        self.robots_cen = []  # center
+        self.robots_cor = []  # right above cor
+        self.current_reward = 0
         self.score = 0
         self.iter = 0
         self.sorting_plate_state = sorting_plate_state_dic['RED']
@@ -189,9 +191,9 @@ class Task:
                 cx = -round(w_w/2)
                 cy = -round(w_h/2) + w_h - i
                 walls_initial.append([cx, cy])
-        m_x=np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
-        m_y=-np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
-        mc_x=np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
+        m_x = np.cos(i_t)*(0 - r_x) + np.sin(i_t)*(0 - r_y)
+        m_y = -np.sin(i_t)*(0 - r_x) + np.cos(i_t)*(0 - r_y)
+        mc_x = np.cos(i_t)*(w_w/2 - r_x) + np.sin(i_t)*(w_h/2 - r_y)
         mc_y = -np.sin(i_t)*(w_w/2 - r_x) + np.cos(i_t)*(w_h/2 - r_y)
         self.robots_cen=[[m_x,m_y]]
         self.robots_cor=[[mc_x,mc_y]]
@@ -273,6 +275,21 @@ class Task:
         # lineType  Type of the line. See LineTypes.
         # shift     Number of fractional bits in the point coordinates.
         
+        # Draw the grid
+        for i in range(1, simulator["width"]):
+            # Vertical grid
+            cv2.line(frame_debug,
+                     (i*debug_scale, 0),
+                     (i*debug_scale, simulator["height"]*debug_scale - 1),
+                     (50, 50, 50),
+                     1)
+            # Horizontal grid
+            cv2.line(frame_debug,
+                     (0, i*debug_scale),
+                     (simulator["width"]*debug_scale - 1, i*debug_scale),
+                     (50, 50, 50),
+                     1)
+        
         # Draw the obstacles
         for i in range(simulator["width"]):
             for j in range(simulator["height"]):
@@ -294,20 +311,7 @@ class Task:
                                   ((i + 1)*debug_scale - 1, (j + 1)*debug_scale - 1),
                                   (255, 0, 0),
                                   -1)
-        # Draw the grid
-        for i in range(1, simulator["width"]):
-            # Vertical grid
-            cv2.line(frame_debug,
-                     (i*debug_scale, 0),
-                     (i*debug_scale, simulator["height"]*debug_scale - 1),
-                     (128, 128, 128),
-                     1)
-            # Horizontal grid
-            cv2.line(frame_debug,
-                     (0, i*debug_scale),
-                     (simulator["width"]*debug_scale - 1, i*debug_scale),
-                     (128, 128, 128),
-                     1)
+        
         # Center of the robot
         cv2.rectangle(frame_debug,
                       (simulator["center"]*debug_scale, (simulator["height"] - Back_pixels)*debug_scale + 1),
@@ -332,7 +336,6 @@ class Task:
                       (0, 255, 0),
                       2)
 
-
         # Right line view angle
         cv2.line(frame_debug,
                  ((simulator["center"] + ball_blind_bias)*debug_scale, (simulator["height"] - Back_pixels)*debug_scale - 1),
@@ -346,17 +349,37 @@ class Task:
                  (128, 128, 128),
                  1)
         # Text
-        cv2.putText(frame_debug,
-                    "Score " + str(self.score),
-                    (int(simulator["width"]*debug_scale*0.65), int(simulator["width"]*debug_scale*0.05)),
-                    cv2.FONT_HERSHEY_TRIPLEX,
-                    0.5,
-                    (255, 255, 255))
+        # cv2.putText(frame_debug,
+        #             "Score " + str(self.score),
+        #             (int(simulator["width"]*debug_scale*0.65), int(simulator["width"]*debug_scale*0.05)),
+        #             cv2.FONT_HERSHEY_TRIPLEX,
+        #             0.05*debug_scale,
+        #             (255, 255, 255))
+        # cv2.putText(frame_debug,
+        #             "Step " + str(self.iter),
+        #             (int(simulator["width"]*debug_scale*0.05),  int(simulator["width"]*debug_scale*0.05)),
+        #             cv2.FONT_HERSHEY_TRIPLEX,
+        #             0.5,
+        #             (255, 255, 255))
+
+        # Text (New)
         cv2.putText(frame_debug,
                     "Step " + str(self.iter),
-                    (int(simulator["width"]*debug_scale*0.05),  int(simulator["width"]*debug_scale*0.05)),
+                    (int(simulator["width"]*debug_scale*0.70), int(simulator["width"]*debug_scale*0.05)),
                     cv2.FONT_HERSHEY_TRIPLEX,
-                    0.5,
+                    0.05*debug_scale,
+                    (255, 255, 255))
+        cv2.putText(frame_debug,
+                    "Score " + '{:.3f}'.format(self.score),
+                    (int(simulator["width"]*debug_scale*0.05), int(simulator["width"]*debug_scale*0.05)),
+                    cv2.FONT_HERSHEY_TRIPLEX,
+                    0.05*debug_scale,
+                    (255, 255, 255))
+        cv2.putText(frame_debug,
+                    "Reward " + str(self.current_reward),
+                    (int(simulator["width"]*debug_scale*0.05),  int(simulator["width"]*debug_scale*0.10)),
+                    cv2.FONT_HERSHEY_TRIPLEX,
+                    0.05*debug_scale,
                     (255, 255, 255))
 
         return frame_debug
@@ -714,8 +737,6 @@ class Task:
             if abs(1.0*obstacle[0]) < 8.0*trans_scale/3 and abs(1.0*obstacle[1]) < 8.0*trans_scale/3:
                 enable_move = False
 
-
-
         reward = 0
         if enable_move:
             self.red_balls = red_balls_temp
@@ -727,11 +748,11 @@ class Task:
             self.draw_state()
             self.red_balls_prev = self.red_balls
             self.blue_balls_prev = self.blue_balls
-
         else:
             reward = self.get_reward(-1)
 
         self.score = self.score + reward
+        self.current_reward = reward
 
         if self.write_flag:
             frame_debug = self.draw_debug_frame(self.frame)
