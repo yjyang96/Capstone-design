@@ -368,6 +368,8 @@ class Task:
         self.frame_gray = np.zeros((simulator["height"]*debug_scale_gray,simulator["width"]*debug_scale_gray,1), np.uint8)
         ran_gray_x=int(random.random()*debug_scale_gray)-1 
         ran_gray_y=int(random.random()*debug_scale_gray)-1
+        ran_gray_x =0 
+        ran_gray_y = 0
         for i in range(simulator["width"]):
             for j in range(simulator["height"]):
                 if self.frame[i][j] == self._params["Map.data.obstacle"]:
@@ -408,6 +410,28 @@ class Task:
                       ((simulator["center"] + 2)*debug_scale_gray+ran_gray_x, (simulator["height"] - (Back_pixels + 1))*debug_scale_gray +ran_gray_y),
                       gray_color["robot_roller"],
                       -1)
+
+
+        scaleup = cv2.resize(self.frame_gray, (simulator["height"]*debug_scale_gray*15,simulator["width"]*debug_scale_gray*15), interpolation=cv2.INTER_NEAREST)
+
+        # Draw the grid
+        for i in range(1, simulator["width"]*debug_scale_gray):
+            # Vertical grid
+            cv2.line(scaleup,
+                     (i*debug_scale_gray*15, 0),
+                     (i*debug_scale_gray*15, simulator["width"]*debug_scale_gray*15),
+                     (128, 128, 128),
+                     1)
+            # Horizontal grid
+            cv2.line(scaleup,
+                     (0, i*debug_scale_gray*15),
+                     (simulator["width"]*debug_scale_gray*15, i*debug_scale_gray*15),
+                     (128, 128, 128),
+                     1)
+
+        cv2.imshow("scaleup",scaleup)
+        cv2.imwrite( "test.jpg", scaleup )
+        cv2.waitKey(5000)
 
         return self.frame_gray
 
